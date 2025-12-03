@@ -50,9 +50,7 @@ COPY --from=builder /app/.venv /app/.venv
 ENV PATH="/app/.venv/bin:$PATH"
 
 # 4. 复制源代码
-# 注意：不需要复制 README.md 了
 COPY src ./src
-COPY main.py ./
 
 # 5. 创建缓存目录并设置权限
 RUN mkdir -p /app/audio_cache && chown -R root:root /app/audio_cache
