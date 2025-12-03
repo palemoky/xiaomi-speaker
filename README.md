@@ -10,12 +10,17 @@
 ```mermaid
 graph TD
     A[GitHub Actions] -->|Webhook| B[Cloudflare Tunnel]
-    B --> C[FastAPI Server]
-    C --> D[Edge TTS]
-    D --> E[Audio Files]
-    C --> F[MiService]
-    E --> F
-    F --> G[Xiaomi Speaker]
+    B -->|HTTPS| C[FastAPI Server :9527]
+    C -->|Generate| D[Edge TTS]
+    D -->|Save| E[Audio Files]
+    C -->|Control| F[MiService]
+    E -->|HTTP :1810| G[Static File Server]
+    G -->|Download| F
+    F -->|Play| H[Xiaomi Speaker]
+    
+    style C fill:#e1f5ff
+    style G fill:#fff4e1
+    style H fill:#ffe1e1
 ```
 
 ## 功能特性
@@ -24,7 +29,7 @@ graph TD
 - ✅ 使用 Edge TTS 生成自然的中文语音
 - ✅ 通过 MiService 控制小米音箱播放
 - ✅ Docker 容器化部署，开箱即用
-- ✅ 多架构支持（amd64, arm64, arm/v7）
+- ✅ 多架构支持（amd64, arm64）
 - ✅ 音频文件缓存，提高响应速度
 - ✅ 配置化管理，灵活定制
 
@@ -52,11 +57,11 @@ MI_USER=your_xiaomi_account@example.com
 MI_PASS=your_xiaomi_password
 MI_DID=your_device_id  # 通过下一步获取
 
-# 服务器配置（默认即可）
+# 服务器配置
 SERVER_HOST=0.0.0.0
-SERVER_PORT=5000
+SERVER_PORT=9527
 STATIC_SERVER_HOST=0.0.0.0
-STATIC_SERVER_PORT=8000
+STATIC_SERVER_PORT=1810
 
 # Edge TTS 配置（可选）
 TTS_VOICE=zh-CN-XiaoxiaoNeural  # 晓晓（女声）
@@ -67,35 +72,25 @@ TTS_VOICE=zh-CN-XiaoxiaoNeural  # 晓晓（女声）
 ```bash
 # 先在 .env 中设置 MI_USER 和 MI_PASS
 # 然后运行以下命令获取设备列表
-docker run --rm --env-file .env your-username/xiaomi-speaker:latest uv run micli list
+docker run --rm --env-file .env palemoky/xiaomi-speaker:latest uv run micli list
 ```
 
 从输出中找到你的音箱设备 ID，填入 `.env` 文件的 `MI_DID` 字段。
 
-### 3. 更新镜像名称
-
-编辑 `docker-compose.yml`，将 `your-username` 替换为你的 Docker Hub 用户名：
-
-```yaml
-services:
-  xiaomi-speaker:
-    image: your-username/xiaomi-speaker:latest  # 替换这里
-```
-
-### 4. 启动服务
+### 3. 启动服务
 
 ```bash
 docker-compose up -d
 ```
 
 服务将在以下端口启动：
-- Webhook 服务器: `http://localhost:5000`
-- 静态文件服务器: `http://localhost:8000`
+- Webhook 服务器: `http://localhost:9527`
+- 静态文件服务器: `http://localhost:1810`
 
-### 5. 测试通知
+### 4. 测试通知
 
 ```bash
-curl -X POST http://localhost:5000/webhook/custom \
+curl -X POST http://localhost:9527/webhook/custom \
   -H "Content-Type: application/json" \
   -d '{"message": "测试通知"}'
 ```
@@ -130,11 +125,11 @@ docker-compose up -d
 docker run -d \
   --name xiaomi-speaker \
   --env-file .env \
-  -p 5000:5000 \
-  -p 8000:8000 \
+  -p 9527:9527 \
+  -p 1810:1810 \
   -v $(pwd)/audio_cache:/app/audio_cache \
   --restart unless-stopped \
-  your-username/xiaomi-speaker:latest
+  palemoky/xiaomi-speaker:latest
 ```
 
 ## Cloudflare Tunnel 配置
@@ -155,7 +150,7 @@ docker run -d \
 2. **配置 Public Hostname**
    - 在 Tunnel 配置页面的 "Public Hostnames" 标签
    - 添加一个 Hostname（例如 `speaker.yourdomain.com`）
-   - **Service** 选择 `HTTP`，URL 填 `xiaomi-speaker:5000` (注意这里用容器名)
+   - **Service** 选择 `HTTP`，URL 填 `xiaomi-speaker:9527` (注意这里用容器名)
 
 3. **更新 .env 文件**
    在 `.env` 文件中添加 Token：
@@ -221,9 +216,9 @@ jobs:
 | `MI_PASS` | 小米密码 | 必填 |
 | `MI_DID` | 设备 ID | 必填 |
 | `SERVER_HOST` | Webhook 服务器地址 | `0.0.0.0` |
-| `SERVER_PORT` | Webhook 服务器端口 | `5000` |
+| `SERVER_PORT` | Webhook 服务器端口 | `9527` |
 | `STATIC_SERVER_HOST` | 静态文件服务器地址 | `0.0.0.0` |
-| `STATIC_SERVER_PORT` | 静态文件服务器端口 | `8000` |
+| `STATIC_SERVER_PORT` | 静态文件服务器端口 | `1810` |
 | `TTS_VOICE` | Edge TTS 语音 | `zh-CN-XiaoxiaoNeural` |
 | `TTS_RATE` | 语速调整 | `+0%` |
 | `TTS_VOLUME` | 音量调整 | `+0%` |
@@ -297,7 +292,7 @@ Content-Type: application/json
    ```
 2. 测试本地端点：
    ```bash
-   curl http://localhost:5000/health
+   curl http://localhost:9527/health
    ```
 3. 查看服务器日志
 
