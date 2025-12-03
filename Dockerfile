@@ -19,7 +19,7 @@ COPY src ./src
 COPY main.py ./
 
 # Install Python dependencies
-RUN uv sync --no-dev
+RUN uv sync --no-dev --no-install-project
 
 # Create audio cache directory
 RUN mkdir -p audio_cache
