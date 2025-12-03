@@ -342,7 +342,6 @@ git push origin v1.0.0
 
 - `linux/amd64` - x86_64（普通电脑、服务器）
 - `linux/arm64` - ARM64（树莓派 4/5、Apple Silicon）
-- `linux/arm/v7` - ARMv7（树莓派 3 及更早版本）
 
 ## 许可证
 
