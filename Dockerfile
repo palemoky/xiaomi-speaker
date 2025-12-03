@@ -60,11 +60,7 @@ ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
 
 # 7. 暴露端口
-EXPOSE 5000 8000
-
-# 8. 健康检查
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:5000/health || exit 1
+EXPOSE 1810 9527
 
 # 9. 启动命令
 # 使用 python 直接运行，不再依赖 uv run

@@ -2,45 +2,26 @@ version: '3.8'
 
 services:
   xiaomi-speaker:
-    # Use pre-built image from Docker Hub
-    # Replace 'your-username' with your Docker Hub username
-    image: your-username/xiaomi-speaker:latest
+    image: palemoky/xiaomi-speaker:latest
     container_name: xiaomi-speaker
     restart: unless-stopped
-    
-    # Environment variables from .env file
     env_file:
       - .env
-    
-    # Ports
     ports:
-      - "5000:5000"  # Webhook server
-      - "8000:8000"  # Static file server
-    
-    # Volumes
+      - "1810:1810"  # Webhook server
+      - "9527:9527"  # Static file server
     volumes:
       - ./audio_cache:/app/audio_cache  # Persist audio cache
       - ./logs:/app/logs                # Persist logs (optional)
-    
-    # Network mode: host is needed for accessing local network devices
-    # Use this if your Xiaomi speaker is on the same network
-    # network_mode: host
-    
-    # Health check
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
-    
-    # Logging
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
-
+    # Network mode: host is needed for accessing local network devices
+    # Use this if your Xiaomi speaker is on the same network
+    # network_mode: host
+    
   # Cloudflare Tunnel
   tunnel:
     image: cloudflare/cloudflared:latest
