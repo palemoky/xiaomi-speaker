@@ -1,0 +1,26 @@
+# Docker ignore file
+.git
+.gitignore
+.env
+*.md
+!README.md
+docs/
+scripts/
+systemd/
+test_system.py
+start.sh
+.python-version
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info
+dist
+build
+audio_cache/*
+!audio_cache/.gitkeep
+logs/*
+!logs/.gitkeep
