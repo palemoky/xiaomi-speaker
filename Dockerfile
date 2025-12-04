@@ -3,7 +3,7 @@
 # ==========================================
 # Stage 1: Builder (构建依赖环境)
 # ==========================================
-FROM python:3.14-slim-bookworm AS builder
+FROM python:3.13-slim-bookworm AS builder
 
 WORKDIR /app
 
@@ -29,7 +29,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # ==========================================
 # Stage 2: Runtime (运行时环境)
 # ==========================================
-FROM python:3.14-slim-bookworm
+FROM python:3.13-slim-bookworm
 
 WORKDIR /app
 

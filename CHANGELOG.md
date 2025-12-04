@@ -7,7 +7,6 @@ All notable changes to this project will be documented in this file.
 ### Changed
 - 重构为纯 Docker 部署方式
 - 简化文档，所有内容整合到 README
-- 使用 Python 3.14
 - 移除 systemd、scripts 等非 Docker 相关文件
 
 ### Added

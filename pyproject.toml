@@ -3,7 +3,7 @@ name = "xiaomi-speaker"
 version = "0.1.0"
 description = "GitHub notification system for Xiaomi speaker using MiService and Edge TTS"
 readme = "README.md"
-requires-python = ">=3.14"
+requires-python = ">=3.13"
 dependencies = [
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.32.0",
@@ -19,7 +19,7 @@ dependencies = [
 dev = [
     "pytest>=8.3.0",
     "pytest-asyncio>=0.24.0",
-    "pytest-mock>=3.14.0",
+    "pytest-mock>=3.13.0",
 ]
 
 [build-system]
