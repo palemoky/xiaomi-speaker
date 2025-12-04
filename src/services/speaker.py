@@ -37,14 +37,17 @@ class SpeakerService:
         """
         try:
             logger.info("Connecting to Xiaomi account...")
-            self.account = MiAccount(
-                settings.mi_user,
-                settings.mi_pass,
-            )
+            logger.debug(f"MI_USER: {settings.mi_user}, MI_DID: {settings.mi_did}")
+            
+            # MiAccount reads password from MI_PASS environment variable
+            # which we set in _setup_credentials()
+            self.account = MiAccount(settings.mi_user)
+            
             self.service = MiNAService(self.account)
             logger.info("Successfully connected to Xiaomi account")
         except Exception as e:
             logger.error(f"Failed to connect to Xiaomi account: {e}")
+            logger.error(f"Please check MI_USER, MI_PASS, and MI_DID environment variables")
             raise
 
     def play_audio_url(self, audio_url: str) -> bool:

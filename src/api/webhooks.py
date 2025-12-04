@@ -8,14 +8,14 @@ from typing import Any, Dict, Optional
 from fastapi import APIRouter, Header, HTTPException, Request, status
 
 from src.config import settings
-from src.services.notification_service import NotificationService
+from src.services.notification import NotificationService
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/webhook", tags=["webhooks"])
 
 # Global notification service instance
-notification_service = NotificationService()
+notification = NotificationService()
 
 
 def verify_github_signature(
@@ -146,7 +146,7 @@ async def handle_workflow_run(payload: Dict[str, Any]) -> Dict[str, Any]:
     )
 
     # Send notification
-    success = await notification_service.send_github_notification(
+    success = await notification.send_github_notification(
         repo=repo_name,
         workflow=workflow_name,
         conclusion=conclusion,
@@ -190,7 +190,7 @@ async def handle_workflow_job(payload: Dict[str, Any]) -> Dict[str, Any]:
     )
 
     # Send notification
-    success = await notification_service.send_github_notification(
+    success = await notification.send_github_notification(
         repo=repo_name,
         workflow=job_name,
         conclusion=conclusion,
@@ -234,7 +234,7 @@ async def handle_check_run(payload: Dict[str, Any]) -> Dict[str, Any]:
     )
 
     # Send notification
-    success = await notification_service.send_github_notification(
+    success = await notification.send_github_notification(
         repo=repo_name,
         workflow=check_name,
         conclusion=conclusion,
@@ -280,7 +280,7 @@ async def custom_notification(request: Request) -> Dict[str, Any]:
 
     logger.info(f"Sending custom notification: {message}")
 
-    success = await notification_service.send_custom_notification(message)
+    success = await notification.send_custom_notification(message)
 
     return {
         "status": "processed",

@@ -5,8 +5,8 @@ from pathlib import Path
 from typing import Dict, Optional
 
 from src.config import settings
-from src.services.speaker_service import SpeakerService
-from src.services.tts_service import TTSService
+from src.services.speaker import SpeakerService
+from src.services.tts import TTSService
 
 logger = logging.getLogger(__name__)
 
@@ -16,8 +16,8 @@ class NotificationService:
 
     def __init__(self) -> None:
         """Initialize the notification service."""
-        self.tts_service = TTSService()
-        self.speaker_service = SpeakerService()
+        self.tts = TTSService()
+        self.speaker = SpeakerService()
 
     def _format_notification(
         self,
@@ -89,14 +89,14 @@ class NotificationService:
             logger.info(f"Sending notification: {message}")
 
             # Generate audio using Edge TTS
-            audio_file = await self.tts_service.generate_speech(message)
+            audio_file = await self.tts.generate_speech(message)
 
             # Get the audio URL for playback
             audio_url = self._get_audio_url(audio_file)
 
             # Play audio on speaker (run synchronous method in thread)
             success = await asyncio.to_thread(
-                self.speaker_service.play_audio_url,
+                self.speaker.play_audio_url,
                 audio_url,
             )
 
@@ -142,14 +142,14 @@ class NotificationService:
             logger.info(f"Sending custom notification: {message}")
 
             # Generate audio using Edge TTS
-            audio_file = await self.tts_service.generate_speech(message)
+            audio_file = await self.tts.generate_speech(message)
 
             # Get the audio URL for playback
             audio_url = self._get_audio_url(audio_file)
 
             # Play audio on speaker (run synchronous method in thread)
             success = await asyncio.to_thread(
-                self.speaker_service.play_audio_url,
+                self.speaker.play_audio_url,
                 audio_url,
             )
 

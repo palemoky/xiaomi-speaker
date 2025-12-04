@@ -1,8 +1,8 @@
 """Service package initialization."""
 
-from src.services.notification_service import NotificationService
-from src.services.speaker_service import SpeakerService
-from src.services.tts_service import TTSService
+from src.services.notification import NotificationService
+from src.services.speaker import SpeakerService
+from src.services.tts import TTSService
 
 __all__ = [
     "NotificationService",
