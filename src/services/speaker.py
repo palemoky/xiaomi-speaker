@@ -1,7 +1,6 @@
 """MiService integration for Xiaomi speaker control."""
 
 import logging
-import os
 from pathlib import Path
 from typing import Optional
 
@@ -20,14 +19,7 @@ class SpeakerService:
         self.account: Optional[MiAccount] = None
         self.service: Optional[MiNAService] = None
         self.device_id = settings.mi_did
-        self._setup_credentials()
 
-    def _setup_credentials(self) -> None:
-        """Set up MiService credentials from settings."""
-        # MiService uses environment variables
-        os.environ["MI_USER"] = settings.mi_user
-        os.environ["MI_PASS"] = settings.mi_pass
-        os.environ["MI_DID"] = settings.mi_did
 
     def connect(self) -> None:
         """Connect to Xiaomi account and initialize service.
@@ -39,9 +31,8 @@ class SpeakerService:
             logger.info("Connecting to Xiaomi account...")
             logger.debug(f"MI_USER: {settings.mi_user}, MI_DID: {settings.mi_did}")
             
-            # MiAccount reads password from MI_PASS environment variable
-            # which we set in _setup_credentials()
-            self.account = MiAccount(settings.mi_user)
+            # MiAccount requires both username and password as positional arguments
+            self.account = MiAccount(settings.mi_user, settings.mi_pass)
             
             self.service = MiNAService(self.account)
             logger.info("Successfully connected to Xiaomi account")
