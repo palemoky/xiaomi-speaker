@@ -24,14 +24,14 @@ class Settings(BaseSettings):
 
     # Server Configuration
     server_host: str = Field(default="0.0.0.0", description="Webhook server host")
-    server_port: int = Field(default=5000, description="Webhook server port")
+    server_port: int = Field(default=9527, description="Webhook server port")
 
     # Static File Server Configuration
     static_server_host: str = Field(
         default="0.0.0.0", description="Static file server host"
     )
     static_server_port: int = Field(
-        default=8000, description="Static file server port"
+        default=1810, description="Static file server port"
     )
 
     # Edge TTS Configuration
