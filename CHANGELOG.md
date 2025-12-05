@@ -124,3 +124,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [Documentation](https://github.com/palemoky/xiaomi-speaker/tree/main/docs)
 
 [0.1.0]: https://github.com/palemoky/xiaomi-speaker/releases/tag/v0.1.0
+
+## v0.2.0 (2025-12-05)
+
+### Feat
+
+- add header check
+- add Chinese built-in TTS
+- add device id
+- add debug log
+- add speaker log
+- tts async download
+- change edge-tts to piper-tts
+- 容器化实现
+- 初始版本
+
+### Fix
+
+- fix ruff
+- fix notify typo
+- fix notify header
+- fix mi did
+- fix Dockerfile error
+- fix mi account
+- fix mi account
+- fix mi account bug
+- fix Dockerfile error
+- fix gcc error
+- fix github actions failed
+- fix github actions failed
+- fix docker hub token
+
+### Refactor
+
+- refine .env.example
+- refactor code
+- rename filename
+- refactor Dockerfile
