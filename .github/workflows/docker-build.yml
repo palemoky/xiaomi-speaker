@@ -78,7 +78,7 @@ jobs:
             -H "X-API-Key: ${{ secrets.SPEAKER_TOKEN }}" \
             -H "CF-Access-Client-Id: ${{ secrets.CF_CLIENT_ID }}" \
             -H "CF-Access-Client-Secret: ${{ secrets.CF_CLIENT_SECRET }}" \
-            -d '{"text": "Ship it! The code is live."}' || true
+            -d '{"message": "Ship it! The code is live."}' || true
           fi
 
       - name: Notify Failure
@@ -90,5 +90,5 @@ jobs:
             -H "X-API-Key: ${{ secrets.SPEAKER_TOKEN }}" \
             -H "CF-Access-Client-Id: ${{ secrets.CF_CLIENT_ID }}" \
             -H "CF-Access-Client-Secret: ${{ secrets.CF_CLIENT_SECRET }}" \
-            -d '{"text": "Mayday! Mayday! The code is broken, I repeat, the code is broken!"}' || true
+            -d '{"message": "Mayday! Mayday! The code is broken, I repeat, the code is broken!"}' || true
           fi
