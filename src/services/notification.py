@@ -19,6 +19,10 @@ class NotificationService:
         self.tts = TTSService()
         self.speaker = SpeakerService()
 
+    async def cleanup(self) -> None:
+        """Clean up resources."""
+        await self.speaker.close()
+
     def _format_notification(
         self,
         template: str,
@@ -65,8 +69,6 @@ class NotificationService:
         Returns:
             True if notification was sent successfully
         """
-        import asyncio
-
         try:
             # Select template based on conclusion
             if conclusion == "failure":
@@ -94,11 +96,8 @@ class NotificationService:
             # Get the audio URL for playback
             audio_url = self._get_audio_url(audio_file)
 
-            # Play audio on speaker (run synchronous method in thread)
-            success = await asyncio.to_thread(
-                self.speaker.play_audio_url,
-                audio_url,
-            )
+            # Play audio on speaker (now async)
+            success = await self.speaker.play_audio_url(audio_url)
 
             if success:
                 logger.info("Notification sent successfully")
@@ -136,8 +135,6 @@ class NotificationService:
         Returns:
             True if notification was sent successfully
         """
-        import asyncio
-
         try:
             logger.info(f"Sending custom notification: {message}")
 
@@ -147,11 +144,8 @@ class NotificationService:
             # Get the audio URL for playback
             audio_url = self._get_audio_url(audio_file)
 
-            # Play audio on speaker (run synchronous method in thread)
-            success = await asyncio.to_thread(
-                self.speaker.play_audio_url,
-                audio_url,
-            )
+            # Play audio on speaker (now async)
+            success = await self.speaker.play_audio_url(audio_url)
 
             if success:
                 logger.info("Custom notification sent successfully")
@@ -163,3 +157,4 @@ class NotificationService:
         except Exception as e:
             logger.error(f"Error sending custom notification: {e}")
             return False
+

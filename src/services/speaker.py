@@ -1,10 +1,10 @@
 """MiService integration for Xiaomi speaker control."""
 
+import asyncio
 import logging
-import os
-from pathlib import Path
 from typing import Optional
 
+from aiohttp import ClientSession
 from miservice import MiAccount, MiNAService
 
 from src.config import settings
@@ -13,19 +13,16 @@ logger = logging.getLogger(__name__)
 
 
 class SpeakerService:
-    """Service for controlling Xiaomi speaker via MiService."""
+    """Service for controlling Xiaomi speaker via MiService (async)."""
 
     def __init__(self) -> None:
         """Initialize the speaker service."""
+        self.session: Optional[ClientSession] = None
         self.account: Optional[MiAccount] = None
         self.service: Optional[MiNAService] = None
         self.device_id = settings.mi_did
-        # Set environment variables that miservice-fork expects
-        os.environ["MI_USER"] = settings.mi_user
-        os.environ["MI_PASS"] = settings.mi_pass
-        os.environ["MI_DID"] = settings.mi_did
 
-    def connect(self) -> None:
+    async def connect(self) -> None:
         """Connect to Xiaomi account and initialize service.
 
         Raises:
@@ -35,9 +32,16 @@ class SpeakerService:
             logger.info("Connecting to Xiaomi account...")
             logger.debug(f"MI_USER: {settings.mi_user}, MI_DID: {settings.mi_did}")
             
-            # miservice-fork's MiAccount reads credentials from environment variables
-            # It expects MI_USER and MI_PASS to be set in the environment
-            self.account = MiAccount()
+            # Create aiohttp session if not exists
+            if not self.session:
+                self.session = ClientSession()
+            
+            # miservice-fork's MiAccount requires session, username, and password
+            self.account = MiAccount(
+                session=self.session,
+                username=settings.mi_user,
+                password=settings.mi_pass
+            )
             
             self.service = MiNAService(self.account)
             logger.info("Successfully connected to Xiaomi account")
@@ -46,7 +50,13 @@ class SpeakerService:
             logger.error(f"Please check MI_USER, MI_PASS, and MI_DID environment variables")
             raise
 
-    def play_audio_url(self, audio_url: str) -> bool:
+    async def close(self) -> None:
+        """Close the aiohttp session."""
+        if self.session:
+            await self.session.close()
+            self.session = None
+
+    async def play_audio_url(self, audio_url: str) -> bool:
         """Play audio from URL on the speaker.
 
         Args:
@@ -56,19 +66,19 @@ class SpeakerService:
             True if successful, False otherwise
         """
         if not self.service:
-            self.connect()
+            await self.connect()
 
         try:
             logger.info(f"Playing audio from URL: {audio_url}")
             # Use MiNAService to play audio by URL
-            result = self.service.play_by_url(self.device_id, audio_url)
+            result = await self.service.play_by_url(self.device_id, audio_url)
             logger.info(f"Audio playback initiated: {result}")
             return True
         except Exception as e:
             logger.error(f"Failed to play audio: {e}")
             return False
 
-    def play_tts(self, text: str) -> bool:
+    async def play_tts(self, text: str) -> bool:
         """Play text-to-speech on the speaker.
 
         Args:
@@ -78,19 +88,19 @@ class SpeakerService:
             True if successful, False otherwise
         """
         if not self.service:
-            self.connect()
+            await self.connect()
 
         try:
             logger.info(f"Playing TTS: {text}")
             # Use MiNAService text_to_speech method
-            result = self.service.text_to_speech(self.device_id, text)
+            result = await self.service.text_to_speech(self.device_id, text)
             logger.info(f"TTS playback initiated: {result}")
             return True
         except Exception as e:
             logger.error(f"Failed to play TTS: {e}")
             return False
 
-    def set_volume(self, volume: int) -> bool:
+    async def set_volume(self, volume: int) -> bool:
         """Set speaker volume.
 
         Args:
@@ -100,7 +110,7 @@ class SpeakerService:
             True if successful, False otherwise
         """
         if not self.service:
-            self.connect()
+            await self.connect()
 
         if not 0 <= volume <= 100:
             logger.error(f"Invalid volume level: {volume}")
@@ -109,7 +119,7 @@ class SpeakerService:
         try:
             logger.info(f"Setting volume to: {volume}")
             # Use MiNAService player_set_volume method
-            result = self.service.player_set_volume(self.device_id, volume)
+            result = await self.service.player_set_volume(self.device_id, volume)
             logger.info(f"Volume set: {result}")
             return True
         except Exception as e:

@@ -34,6 +34,10 @@ async def lifespan(app: FastAPI):
 
     # Shutdown
     logger.info("Shutting down application...")
+    # Clean up notification service resources
+    from src.api.webhooks import notification
+    await notification.cleanup()
+    logger.info("Cleanup complete")
 
 
 def create_app() -> FastAPI:
