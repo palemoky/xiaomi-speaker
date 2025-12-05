@@ -2,14 +2,16 @@ name: Build and Push Docker Image
 
 on:
   push:
-    branches:
-      - main
     tags:
       - 'v*'
-  pull_request:
-    branches:
-      - main
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 env:
   DOCKER_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/xiaomi-speaker
@@ -45,7 +47,6 @@ jobs:
             type=ref,event=pr
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
             type=raw,value=latest,enable={{is_default_branch}}
       
       - name: Build and push
@@ -67,3 +68,27 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
           repository: ${{ env.DOCKER_IMAGE }}
           readme-filepath: ./README.md
+
+      - name: Notify Success
+        if: success() && github.event_name != 'pull_request'
+        run: |
+          if [ -n "${{ secrets.SPEAKER_WEBHOOK_URL }}" ]; then
+            curl -X POST "${{ secrets.SPEAKER_WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -H "x-token: ${{ secrets.SPEAKER_TOKEN }}" \
+            -H "CF-Access-Client-Id: ${{ secrets.CF_CLIENT_ID }}" \
+            -H "CF-Access-Client-Secret: ${{ secrets.CF_CLIENT_SECRET }}" \
+            -d '{"text": "Ship it! The code is live."}' || true
+          fi
+
+      - name: Notify Failure
+        if: failure() && github.event_name != 'pull_request'
+        run: |
+          if [ -n "${{ secrets.SPEAKER_WEBHOOK_URL }}" ]; then
+            curl -X POST "${{ secrets.SPEAKER_WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -H "x-token: ${{ secrets.SPEAKER_TOKEN }}" \
+            -H "CF-Access-Client-Id: ${{ secrets.CF_CLIENT_ID }}" \
+            -H "CF-Access-Client-Secret: ${{ secrets.CF_CLIENT_SECRET }}" \
+            -d '{"text": "Mayday! Mayday! The code is broken, I repeat, the code is broken!"}' || true 
+          fi
