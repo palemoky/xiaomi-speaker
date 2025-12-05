@@ -1,3 +1,7 @@
+<h1 align="center">
+The Voice of Your Code. <br/>你的代码，掷地有声！
+</h1>
+
 # Xiaomi Speaker GitHub Notification System
 
 通过 Docker 运行的 GitHub 通知系统，使用 MiService + Piper TTS 实现小米音箱播报 GitHub Actions 状态。
