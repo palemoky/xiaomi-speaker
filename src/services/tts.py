@@ -4,7 +4,6 @@ import hashlib
 import logging
 import wave
 from pathlib import Path
-from typing import Optional
 
 from piper import PiperVoice
 
@@ -25,16 +24,16 @@ class TTSService:
         self.length_scale = settings.piper_length_scale
         self.cache_dir = settings.audio_cache_dir
         settings.ensure_audio_cache_dir()
-        
+
         # Model directory (default Piper location or custom)
         self.models_dir = Path.home() / ".local" / "share" / "piper-voices"
         self.models_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Lazy load voices (will be loaded on first use)
-        self.voice_zh: Optional[PiperVoice] = None
-        self.voice_en: Optional[PiperVoice] = None
 
-    def _find_model_file(self, voice_name: str) -> Optional[Path]:
+        # Lazy load voices (will be loaded on first use)
+        self.voice_zh: PiperVoice | None = None
+        self.voice_en: PiperVoice | None = None
+
+    def _find_model_file(self, voice_name: str) -> Path | None:
         """Find the .onnx model file for a voice.
 
         Args:
@@ -47,14 +46,14 @@ class TTSService:
         for model_file in self.models_dir.rglob(f"{voice_name}.onnx"):
             logger.debug(f"Found model: {model_file}")
             return model_file
-        
+
         # Also check in audio_cache/voices (for Docker volume mounts)
         alt_dir = self.cache_dir / "voices"
         if alt_dir.exists():
             for model_file in alt_dir.rglob(f"{voice_name}.onnx"):
                 logger.debug(f"Found model in cache: {model_file}")
                 return model_file
-        
+
         return None
 
     def _download_voice_model(self, voice_name: str) -> Path:
@@ -72,38 +71,38 @@ class TTSService:
         import urllib.request
 
         logger.info(f"Voice model not found, downloading: {voice_name}")
-        
+
         # Construct download URL
         base_url = "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0"
-        
+
         # Parse voice name to get path components
         if voice_name.startswith("zh_CN"):
             lang_path = "zh/zh_CN"
             voice_parts = voice_name.split("-")
             voice_id = voice_parts[1]  # huayan
-            quality = voice_parts[2]    # medium
+            quality = voice_parts[2]  # medium
         elif voice_name.startswith("en_US"):
             lang_path = "en/en_US"
             voice_parts = voice_name.split("-")
             voice_id = voice_parts[1]  # lessac
-            quality = voice_parts[2]    # medium
+            quality = voice_parts[2]  # medium
         else:
             raise ValueError(f"Unsupported voice: {voice_name}")
-        
+
         # Create target directory
         voice_dir = self.models_dir / lang_path / voice_id / quality
         voice_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Download .onnx and .onnx.json files
         files = [
             f"{voice_name}.onnx",
             f"{voice_name}.onnx.json",
         ]
-        
+
         for filename in files:
             url = f"{base_url}/{lang_path}/{voice_id}/{quality}/{filename}"
             dest = voice_dir / filename
-            
+
             logger.info(f"Downloading: {filename}")
             try:
                 urllib.request.urlretrieve(url, dest)
@@ -111,7 +110,7 @@ class TTSService:
             except Exception as e:
                 logger.error(f"Failed to download {filename}: {e}")
                 raise
-        
+
         model_path = voice_dir / f"{voice_name}.onnx"
         logger.info(f"Voice model downloaded successfully: {model_path}")
         return model_path
@@ -128,43 +127,43 @@ class TTSService:
         Raises:
             Exception: If voice model cannot be loaded
         """
-        if language == 'zh':
+        if language == "zh":
             if self.voice_zh is None:
                 voice_name = self.voice_zh_name
-                
+
                 # Check if Chinese voice is configured
                 if not voice_name:
                     raise ValueError(
                         "PIPER_VOICE_ZH is not configured. "
                         "Either set it in .env or the system will use speaker's built-in TTS for Chinese."
                     )
-                
+
                 logger.info(f"Loading Chinese voice: {voice_name}")
-                
+
                 model_path = self._find_model_file(voice_name)
                 if model_path is None:
                     # Auto-download if not found
                     logger.info(f"Model not found locally, will download: {voice_name}")
                     model_path = self._download_voice_model(voice_name)
-                
+
                 self.voice_zh = PiperVoice.load(str(model_path))
                 logger.info(f"Chinese voice loaded from: {model_path}")
-            
+
             return self.voice_zh
         else:
             if self.voice_en is None:
                 voice_name = self.voice_en_name
                 logger.info(f"Loading English voice: {voice_name}")
-                
+
                 model_path = self._find_model_file(voice_name)
                 if model_path is None:
                     # Auto-download if not found
                     logger.info(f"Model not found locally, will download: {voice_name}")
                     model_path = self._download_voice_model(voice_name)
-                
+
                 self.voice_en = PiperVoice.load(str(model_path))
                 logger.info(f"English voice loaded from: {model_path}")
-            
+
             return self.voice_en
 
     def _get_cache_filename(self, text: str, language: str) -> str:
@@ -202,7 +201,7 @@ class TTSService:
         # Detect language
         language = detect_language(text)
         logger.info(f"Detected language: {language} for text: {text[:50]}...")
-        
+
         cache_file = self.cache_dir / self._get_cache_filename(text, language)
 
         # Return cached file if it exists and caching is enabled
@@ -212,17 +211,19 @@ class TTSService:
 
         try:
             logger.info(f"Generating speech with Piper TTS ({language})")
-            
+
             # Load appropriate voice
             voice = self._load_voice(language)
-            
+
             # Generate audio using synthesize_wav
             with wave.open(str(cache_file), "wb") as wav_file:
                 voice.synthesize_wav(text, wav_file)
-            
+
             # Verify the file was created
             if cache_file.exists() and cache_file.stat().st_size > 0:
-                logger.info(f"Generated audio saved to: {cache_file} ({cache_file.stat().st_size} bytes)")
+                logger.info(
+                    f"Generated audio saved to: {cache_file} ({cache_file.stat().st_size} bytes)"
+                )
                 return cache_file
             else:
                 raise Exception("Generated file is empty or does not exist")
@@ -234,7 +235,7 @@ class TTSService:
                 cache_file.unlink()
             raise
 
-    async def clear_cache(self, max_age_days: Optional[int] = None) -> int:
+    async def clear_cache(self, max_age_days: int | None = None) -> int:
         """Clear old cached audio files.
 
         Args:
@@ -254,9 +255,7 @@ class TTSService:
             if max_age_days is None:
                 should_delete = True
             else:
-                file_age_days = (
-                    time.time() - audio_file.stat().st_mtime
-                ) / 86400
+                file_age_days = (time.time() - audio_file.stat().st_mtime) / 86400
                 if file_age_days > max_age_days:
                     should_delete = True
 
@@ -270,4 +269,3 @@ class TTSService:
 
         logger.info(f"Cleared {deleted_count} cached audio files")
         return deleted_count
-

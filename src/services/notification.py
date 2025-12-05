@@ -2,7 +2,6 @@
 
 import logging
 from pathlib import Path
-from typing import Dict, Optional
 
 from src.config import settings
 from src.services.speaker import SpeakerService
@@ -30,7 +29,7 @@ class NotificationService:
         repo: str,
         workflow: str,
         conclusion: str,
-        url: Optional[str] = None,
+        url: str | None = None,
     ) -> str:
         """Format notification message from template.
 
@@ -54,10 +53,10 @@ class NotificationService:
 
     async def _send_message(self, message: str) -> bool:
         """Send a message using appropriate TTS method.
-        
+
         Args:
             message: Message to send
-            
+
         Returns:
             True if message was sent successfully
         """
@@ -78,7 +77,7 @@ class NotificationService:
         repo: str,
         workflow: str,
         conclusion: str,
-        url: Optional[str] = None,
+        url: str | None = None,
     ) -> bool:
         """Send a GitHub workflow notification.
 
@@ -99,7 +98,9 @@ class NotificationService:
                 template = settings.notification_template_success
             else:
                 # Generic template for other conclusions
-                template = f"GitHub Actions 通知：仓库 {{repo}}，工作流 {{workflow}} 状态为 {conclusion}"
+                template = (
+                    f"GitHub Actions 通知：仓库 {{repo}}，工作流 {{workflow}} 状态为 {conclusion}"
+                )
 
             # Format the message
             message = self._format_notification(
@@ -142,17 +143,17 @@ class NotificationService:
 
     def _should_use_speaker_tts(self, text: str) -> bool:
         """Determine if we should use speaker's built-in TTS.
-        
+
         Args:
             text: Text to analyze
-            
+
         Returns:
             True if should use speaker's built-in TTS, False otherwise
         """
         # If Piper Chinese voice is not configured, use speaker's TTS for Chinese
         if not settings.piper_voice_zh:
             return is_chinese(text)
-        
+
         return False
 
     async def send_custom_notification(self, message: str) -> bool:
@@ -178,4 +179,3 @@ class NotificationService:
         except Exception as e:
             logger.error(f"Error sending custom notification: {e}")
             return False
-

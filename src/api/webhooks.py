@@ -4,7 +4,7 @@ import hashlib
 import hmac
 import logging
 import secrets
-from typing import Any, Dict, Optional
+from typing import Any
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 
@@ -21,7 +21,7 @@ notification = NotificationService()
 
 def verify_github_signature(
     payload: bytes,
-    signature: Optional[str],
+    signature: str | None,
     secret: str,
 ) -> bool:
     """Verify GitHub webhook signature.
@@ -54,15 +54,15 @@ def verify_github_signature(
     return hmac.compare_digest(computed_signature, expected_signature)
 
 
-async def verify_api_key(x_api_key: Optional[str] = Header(None)) -> str:
+async def verify_api_key(x_api_key: str | None = Header(None)) -> str:
     """Verify API key from request header.
-    
+
     Args:
         x_api_key: API key from X-API-Key header
-        
+
     Returns:
         The verified API key
-        
+
     Raises:
         HTTPException: If API key is missing or invalid
     """
@@ -70,31 +70,27 @@ async def verify_api_key(x_api_key: Optional[str] = Header(None)) -> str:
     if not settings.api_secret:
         logger.warning("API_SECRET not configured, skipping authentication")
         return "not_configured"
-    
+
     if x_api_key is None:
         logger.warning("Missing API key in request")
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing X-API-Key header"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing X-API-Key header"
         )
-    
+
     # Use secrets.compare_digest for secure string comparison
     if not secrets.compare_digest(x_api_key, settings.api_secret):
         logger.warning("Invalid API key provided")
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Invalid API key"
-        )
-    
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid API key")
+
     return x_api_key
 
 
 @router.post("/github")
 async def github_webhook(
     request: Request,
-    x_github_event: Optional[str] = Header(None),
-    x_hub_signature_256: Optional[str] = Header(None),
-) -> Dict[str, Any]:
+    x_github_event: str | None = Header(None),
+    x_hub_signature_256: str | None = Header(None),
+) -> dict[str, Any]:
     """Handle GitHub webhook events.
 
     Args:
@@ -132,7 +128,7 @@ async def github_webhook(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid JSON payload",
-        )
+        ) from e
 
     logger.info(f"Received GitHub event: {x_github_event}")
 
@@ -153,7 +149,7 @@ async def github_webhook(
         return {"status": "ignored", "event": x_github_event}
 
 
-async def handle_workflow_run(payload: Dict[str, Any]) -> Dict[str, Any]:
+async def handle_workflow_run(payload: dict[str, Any]) -> dict[str, Any]:
     """Handle workflow_run events.
 
     Args:
@@ -197,7 +193,7 @@ async def handle_workflow_run(payload: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-async def handle_workflow_job(payload: Dict[str, Any]) -> Dict[str, Any]:
+async def handle_workflow_job(payload: dict[str, Any]) -> dict[str, Any]:
     """Handle workflow_job events.
 
     Args:
@@ -220,10 +216,7 @@ async def handle_workflow_job(payload: Dict[str, Any]) -> Dict[str, Any]:
     repo_name = payload.get("repository", {}).get("full_name", "Unknown")
     job_url = workflow_job.get("html_url")
 
-    logger.info(
-        f"Job completed - Repo: {repo_name}, "
-        f"Job: {job_name}, Conclusion: {conclusion}"
-    )
+    logger.info(f"Job completed - Repo: {repo_name}, Job: {job_name}, Conclusion: {conclusion}")
 
     # Send notification
     success = await notification.send_github_notification(
@@ -241,7 +234,7 @@ async def handle_workflow_job(payload: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-async def handle_check_run(payload: Dict[str, Any]) -> Dict[str, Any]:
+async def handle_check_run(payload: dict[str, Any]) -> dict[str, Any]:
     """Handle check_run events.
 
     Args:
@@ -265,8 +258,7 @@ async def handle_check_run(payload: Dict[str, Any]) -> Dict[str, Any]:
     check_url = check_run.get("html_url")
 
     logger.info(
-        f"Check completed - Repo: {repo_name}, "
-        f"Check: {check_name}, Conclusion: {conclusion}"
+        f"Check completed - Repo: {repo_name}, Check: {check_name}, Conclusion: {conclusion}"
     )
 
     # Send notification
@@ -287,9 +279,8 @@ async def handle_check_run(payload: Dict[str, Any]) -> Dict[str, Any]:
 
 @router.post("/custom")
 async def custom_notification(
-    request: Request,
-    api_key: str = Depends(verify_api_key)
-) -> Dict[str, Any]:
+    request: Request, api_key: str = Depends(verify_api_key)
+) -> dict[str, Any]:
     """Send a custom notification.
 
     Args:
@@ -309,7 +300,7 @@ async def custom_notification(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid JSON payload",
-        )
+        ) from e
 
     message = payload.get("message")
     if not message:
