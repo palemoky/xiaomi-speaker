@@ -12,7 +12,7 @@ services:
     volumes:
       - ./audio_cache:/app/audio_cache
       - ./logs:/app/logs
-      - piper-voices:/root/.local/share/piper-voices  
+      - piper-voices:/root/.local/share/piper-voices
     logging:
       driver: "json-file"
       options:
@@ -34,4 +34,4 @@ services:
 
 # 定义命名卷
 volumes:
-  piper-voices: 
+  piper-voices:

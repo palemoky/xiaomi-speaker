@@ -1,14 +1,15 @@
 """Pytest configuration and shared fixtures."""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 
 @pytest.fixture
 def mock_settings():
     """Mock settings for testing."""
     from src.config import Settings
-    
+
     return Settings(
         mi_user="test_user",
         mi_pass="test_pass",
@@ -27,14 +28,14 @@ def mock_settings():
 def mock_speaker_service():
     """Mock SpeakerService for testing."""
     from src.services.speaker import SpeakerService
-    
+
     service = MagicMock(spec=SpeakerService)
     service.play_tts = AsyncMock(return_value=True)
     service.play_audio_url = AsyncMock(return_value=True)
     service.set_volume = AsyncMock(return_value=True)
     service.connect = AsyncMock()
     service.close = AsyncMock()
-    
+
     return service
 
 
@@ -42,11 +43,12 @@ def mock_speaker_service():
 def mock_tts_service():
     """Mock TTSService for testing."""
     from pathlib import Path
+
     from src.services.tts import TTSService
-    
+
     service = MagicMock(spec=TTSService)
     service.generate_speech = AsyncMock(return_value=Path("/tmp/test_audio.wav"))
-    
+
     return service
 
 
@@ -54,12 +56,12 @@ def mock_tts_service():
 def mock_notification_service(mock_speaker_service, mock_tts_service):
     """Mock NotificationService for testing."""
     from src.services.notification import NotificationService
-    
+
     service = MagicMock(spec=NotificationService)
     service.speaker = mock_speaker_service
     service.tts = mock_tts_service
     service.send_github_notification = AsyncMock(return_value=True)
     service.send_custom_notification = AsyncMock(return_value=True)
     service.cleanup = AsyncMock()
-    
+
     return service

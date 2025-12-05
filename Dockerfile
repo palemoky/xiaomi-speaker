@@ -51,7 +51,7 @@ ENV PYTHONUNBUFFERED=1
 COPY src ./src
 
 # 5. 创建缓存目录和模型目录
-RUN mkdir -p /app/audio_cache /root/.local/share/piper-voices 
+RUN mkdir -p /app/audio_cache /root/.local/share/piper-voices
 
 # 6. 端口与健康检查
 EXPOSE 1810 9527

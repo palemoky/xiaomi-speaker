@@ -1,7 +1,6 @@
 """Configuration management using Pydantic settings."""
 
 from pathlib import Path
-from typing import Optional
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -27,15 +26,11 @@ class Settings(BaseSettings):
     server_port: int = Field(default=9527, description="Webhook server port")
 
     # Static File Server Configuration
-    static_server_host: str = Field(
-        default="0.0.0.0", description="Static file server host"
-    )
-    static_server_port: int = Field(
-        default=1810, description="Static file server port"
-    )
+    static_server_host: str = Field(default="0.0.0.0", description="Static file server host")
+    static_server_port: int = Field(default=1810, description="Static file server port")
 
     # Piper TTS Configuration
-    piper_voice_zh: Optional[str] = Field(
+    piper_voice_zh: str | None = Field(
         default=None,
         description="Piper voice model for Chinese (if not set, use speaker's built-in TTS)",
     )
@@ -68,12 +63,12 @@ class Settings(BaseSettings):
     )
 
     # Webhook Security (optional)
-    github_webhook_secret: Optional[str] = Field(
+    github_webhook_secret: str | None = Field(
         default=None, description="GitHub webhook secret for signature verification"
     )
-    
+
     # API Security (optional)
-    api_secret: Optional[str] = Field(
+    api_secret: str | None = Field(
         default=None, description="API secret for custom webhook authentication"
     )
 
