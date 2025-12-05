@@ -1,46 +1,54 @@
 # Xiaomi Speaker GitHub Notification System
 
-通过 Docker 运行的 GitHub 通知系统，使用 MiService + Edge TTS 实现小米音箱播报 GitHub Actions 状态。
+通过 Docker 运行的 GitHub 通知系统，使用 MiService + Piper TTS 实现小米音箱播报 GitHub Actions 状态。
 
+[![Tests](https://github.com/palemoky/xiaomi-speaker/actions/workflows/test.yml/badge.svg)](https://github.com/palemoky/xiaomi-speaker/actions/workflows/test.yml)
+[![Docker Build](https://github.com/palemoky/xiaomi-speaker/actions/workflows/docker-build.yml/badge.svg)](https://github.com/palemoky/xiaomi-speaker/actions/workflows/docker-build.yml)
+[![codecov](https://codecov.io/gh/palemoky/xiaomi-speaker/branch/main/graph/badge.svg)](https://codecov.io/gh/palemoky/xiaomi-speaker)
 [![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=flat&logo=docker&logoColor=white)](https://www.docker.com/)
-[![GitHub Actions](https://img.shields.io/badge/github%20actions-%232671E5.svg?style=flat&logo=githubactions&logoColor=white)](https://github.com/features/actions)
+[![Python 3.13](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org/downloads/)
 
-## 系统架构
+## ✨ 功能特性
+
+- 🎯 **GitHub 集成** - 接收 GitHub webhook 事件（workflow_run, workflow_job, check_run）
+- 🎙️ **本地 TTS** - 使用 Piper TTS 生成高质量离线语音（支持中英文）
+- 🔊 **智能回退** - 中文自动使用音箱内置 TTS，无需下载模型
+- 🔐 **API 认证** - 支持 API Key 和 GitHub Webhook 签名验证
+- 🐳 **容器化部署** - Docker 多架构支持（amd64, arm64）
+- 📦 **音频缓存** - 自动缓存生成的音频文件
+- 🧪 **完整测试** - 66% 代码覆盖率，81 个单元测试
+- 🚀 **CI/CD** - GitHub Actions 自动化测试和构建
+
+## 📊 系统架构
 
 ```mermaid
 graph TD
     A[GitHub Actions] -->|Webhook| B[Cloudflare Tunnel]
     B -->|HTTPS| C[FastAPI Server :9527]
-    C -->|Generate| D[Edge TTS]
-    D -->|Save| E[Audio Files]
+    C -->|Generate| D[Piper TTS]
+    D -->|Save| E[Audio Cache]
     C -->|Control| F[MiService]
-    E -->|HTTP :1810| G[Static File Server]
+    E -->|HTTP :1810| G[Static Server]
     G -->|Download| F
     F -->|Play| H[Xiaomi Speaker]
-    
+
+    C -->|Fallback| I[Speaker Built-in TTS]
+    I -->|Play| H
+
     style C fill:#e1f5ff
+    style D fill:#d4f1d4
     style G fill:#fff4e1
     style H fill:#ffe1e1
 ```
 
-## 功能特性
-
-- ✅ 接收 GitHub webhook 事件（workflow_run, workflow_job, check_run）
-- ✅ 使用 Edge TTS 生成自然的中文语音
-- ✅ 通过 MiService 控制小米音箱播放
-- ✅ Docker 容器化部署，开箱即用
-- ✅ 多架构支持（amd64, arm64）
-- ✅ 音频文件缓存，提高响应速度
-- ✅ 配置化管理，灵活定制
-
-## 快速开始
+## 🚀 快速开始
 
 ### 前提条件
 
 - Docker 和 Docker Compose
-- 小米音箱
+- 小米音箱（支持 MiNA 协议）
 - 小米账号
-- Cloudflare 账号（用于公网访问）
+- Cloudflare 账号（可选，用于公网访问）
 
 ### 1. 配置环境变量
 
@@ -49,7 +57,7 @@ cp .env.example .env
 nano .env
 ```
 
-必须配置以下变量：
+**必填配置**：
 
 ```bash
 # 小米账号配置
@@ -57,14 +65,25 @@ MI_USER=your_xiaomi_account@example.com
 MI_PASS=your_xiaomi_password
 MI_DID=your_device_id  # 通过下一步获取
 
-# 服务器配置
-SERVER_HOST=0.0.0.0
-SERVER_PORT=9527
-STATIC_SERVER_HOST=0.0.0.0
+# 静态文件服务器（重要：必须是音箱能访问的 IP）
+STATIC_SERVER_HOST=192.168.1.100  # 修改为你的设备 IP
 STATIC_SERVER_PORT=1810
+```
 
-# Edge TTS 配置（可选）
-TTS_VOICE=zh-CN-XiaoxiaoNeural  # 晓晓（女声）
+**可选配置**：
+
+```bash
+# Piper TTS 中文语音（可选，留空则使用音箱内置 TTS）
+# PIPER_VOICE_ZH=zh_CN-huayan-medium
+
+# Piper TTS 英文语音
+PIPER_VOICE_EN=en_US-lessac-medium
+
+# API 安全认证
+API_SECRET=your_strong_random_api_key
+
+# GitHub Webhook 签名验证
+GITHUB_WEBHOOK_SECRET=your_webhook_secret
 ```
 
 ### 2. 获取小米设备 ID
@@ -75,7 +94,7 @@ TTS_VOICE=zh-CN-XiaoxiaoNeural  # 晓晓（女声）
 docker run --rm --env-file .env palemoky/xiaomi-speaker:latest uv run micli list
 ```
 
-从输出中找到你的音箱设备 ID，填入 `.env` 文件的 `MI_DID` 字段。
+从输出中找到你的音箱设备 ID（支持 UUID、数字 DID 或设备名称），填入 `.env` 文件的 `MI_DID` 字段。
 
 ### 3. 启动服务
 
@@ -90,14 +109,16 @@ docker-compose up -d
 ### 4. 测试通知
 
 ```bash
+# 需要提供 API Key（如果配置了 API_SECRET）
 curl -X POST http://localhost:9527/webhook/custom \
   -H "Content-Type: application/json" \
+  -H "X-API-Key: your_api_secret" \
   -d '{"message": "测试通知"}'
 ```
 
 如果配置正确，音箱应该会播报"测试通知"。
 
-## Docker 管理
+## 🐳 Docker 管理
 
 ### 常用命令
 
@@ -192,10 +213,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Build
         run: npm run build
-      
+
       - name: Send notification
         if: failure()
         run: |
@@ -204,68 +225,101 @@ jobs:
             -d '{"message": "构建失败：${{ github.repository }}"}'
 ```
 
-需要在仓库 Settings → Secrets 中添加 `WEBHOOK_URL`。
+需要在仓库 Settings → Secrets 中添加 `WEBHOOK_URL` 和 `API_SECRET`。
 
-## 配置选项
+## ⚙️ 配置选项
 
-所有配置通过 `.env` 文件管理：
+所有配置通过 `.env` 文件管理，详见 [.env.example](file:///Users/xinyu/Workspace/xiaomi-speaker/.env.example)。
+
+### 必填配置
+
+| 变量 | 说明 | 示例 |
+|------|------|------|
+| `MI_USER` | 小米账号 | `user@example.com` |
+| `MI_PASS` | 小米密码 | `your_password` |
+| `MI_DID` | 设备 ID（UUID/数字DID/名称） | `uuid-1234` 或 `12345678` 或 `小米音箱` |
+| `STATIC_SERVER_HOST` | 音箱可访问的 IP 地址 | `192.168.1.100` |
+| `STATIC_SERVER_PORT` | 静态文件服务器端口 | `1810` |
+
+### TTS 配置
 
 | 变量 | 说明 | 默认值 |
 |------|------|--------|
-| `MI_USER` | 小米账号 | 必填 |
-| `MI_PASS` | 小米密码 | 必填 |
-| `MI_DID` | 设备 ID | 必填 |
-| `SERVER_HOST` | Webhook 服务器地址 | `0.0.0.0` |
-| `SERVER_PORT` | Webhook 服务器端口 | `9527` |
-| `STATIC_SERVER_HOST` | 静态文件服务器地址 | `0.0.0.0` |
-| `STATIC_SERVER_PORT` | 静态文件服务器端口 | `1810` |
-| `TTS_VOICE` | Edge TTS 语音 | `zh-CN-XiaoxiaoNeural` |
-| `TTS_RATE` | 语速调整 | `+0%` |
-| `TTS_VOLUME` | 音量调整 | `+0%` |
-| `NOTIFICATION_TEMPLATE_FAILURE` | 失败通知模板 | 见 `.env.example` |
-| `NOTIFICATION_TEMPLATE_SUCCESS` | 成功通知模板 | 见 `.env.example` |
+| `PIPER_VOICE_ZH` | Piper 中文语音模型（可选） | 留空使用音箱内置 TTS |
+| `PIPER_VOICE_EN` | Piper 英文语音模型 | `en_US-lessac-medium` |
+| `PIPER_SPEAKER` | 说话人 ID（多说话人模型） | `0` |
+| `PIPER_LENGTH_SCALE` | 语速（1.0=正常） | `1.0` |
 | `AUDIO_CACHE_DIR` | 音频缓存目录 | `audio_cache` |
-| `GITHUB_WEBHOOK_SECRET` | Webhook 签名密钥（可选） | 无 |
 
-### 可用的 TTS 语音
+### 安全配置（可选）
 
-- `zh-CN-XiaoxiaoNeural` - 晓晓（女声，推荐）
-- `zh-CN-YunxiNeural` - 云希（男声）
-- `zh-CN-YunyangNeural` - 云扬（男声）
-- `zh-CN-XiaoyiNeural` - 晓伊（女声）
+| 变量 | 说明 | 生成方法 |
+|------|------|----------|
+| `API_SECRET` | 自定义 webhook API 密钥 | `python -c "import secrets; print(secrets.token_urlsafe(32))"` |
+| `GITHUB_WEBHOOK_SECRET` | GitHub webhook 签名密钥 | 在 GitHub webhook 设置中配置 |
 
-## API 端点
+### 可用的 Piper 中文语音
+
+- `zh_CN-huayan-medium` - 华研（女声，推荐）
+- 更多模型见 [Piper Voices](https://github.com/rhasspy/piper/blob/master/VOICES.md)
+
+## 📡 API 端点
 
 ### 健康检查
+
 ```bash
 GET /health
 ```
 
+**响应**:
+```json
+{"status": "healthy"}
+```
+
 ### GitHub Webhook
+
 ```bash
 POST /webhook/github
 Content-Type: application/json
 X-GitHub-Event: workflow_run
+X-Hub-Signature-256: sha256=... (可选，需配置 GITHUB_WEBHOOK_SECRET)
 
 {
   "action": "completed",
   "workflow_run": {
     "name": "CI",
-    "conclusion": "failure",
+    "conclusion": "success",
     "repository": {
       "full_name": "user/repo"
-    }
+    },
+    "html_url": "https://github.com/user/repo/actions/runs/123"
   }
 }
 ```
 
+**支持的事件**:
+- `workflow_run` - 工作流运行完成
+- `workflow_job` - 工作流任务完成
+- `check_run` - 检查运行完成
+
 ### 自定义通知
+
 ```bash
 POST /webhook/custom
 Content-Type: application/json
+X-API-Key: your_api_secret (需配置 API_SECRET)
 
 {
   "message": "你的自定义消息"
+}
+```
+
+**响应**:
+```json
+{
+  "status": "processed",
+  "message": "你的自定义消息",
+  "notification_sent": true
 }
 ```
 
@@ -311,39 +365,180 @@ Content-Type: application/json
    ```
 3. 确认端口未被占用
 
-## 自动构建 Docker 镜像
+## 🧪 开发指南
 
-本项目使用 GitHub Actions 自动构建多架构镜像。
+### 本地开发环境
+
+1. **克隆仓库**
+   ```bash
+   git clone https://github.com/palemoky/xiaomi-speaker.git
+   cd xiaomi-speaker
+   ```
+
+2. **安装 UV**
+   ```bash
+   curl -LsSf https://astral.sh/uv/install.sh | sh
+   ```
+
+3. **安装依赖**
+   ```bash
+   uv sync --all-extras
+   ```
+
+4. **配置环境变量**
+   ```bash
+   cp .env.example .env
+   # 编辑 .env 文件
+   ```
+
+5. **运行服务**
+   ```bash
+   uv run python -m src.main
+   ```
+
+### 运行测试
+
+```bash
+# 运行所有测试
+uv run pytest
+
+# 运行测试并生成覆盖率报告
+uv run pytest --cov=src --cov-report=html
+
+# 运行特定测试文件
+uv run pytest tests/test_api.py
+
+# 并行运行测试
+uv run pytest -n auto
+```
+
+### 代码质量检查
+
+```bash
+# Ruff 代码检查
+uv run ruff check src/ tests/
+
+# Ruff 代码格式化
+uv run ruff format src/ tests/
+
+# Mypy 类型检查
+uv run mypy src/
+```
+
+### 提交规范
+
+本项目使用 [Conventional Commits](https://www.conventionalcommits.org/) 规范：
+
+```bash
+# 使用 commitizen 创建规范的提交
+uv run cz commit
+
+# 或手动编写
+git commit -m "feat(api): add new endpoint for notifications"
+git commit -m "fix(speaker): resolve connection timeout issue"
+```
+
+**可用的 scopes**:
+- `api` - API endpoints
+- `speaker` - Speaker service
+- `tts` - TTS service
+- `webhook` - Webhook handlers
+- `notification` - Notification service
+- `config` - Configuration
+- `docker` - Docker related
+- `ci` - CI/CD
+- `deps` - Dependencies
+- `docs` - Documentation
+- `test` - Tests
+
+## 🚀 CI/CD
+
+### GitHub Actions 工作流
+
+#### 测试工作流 (`.github/workflows/test.yml`)
+
+每次 push 和 PR 都会自动运行：
+- ✅ Ruff 代码检查
+- ✅ Mypy 类型检查
+- ✅ Pytest 单元测试（81 个测试）
+- ✅ 代码覆盖率报告（66%）
+- ✅ 上传到 Codecov
+
+#### Docker 构建工作流 (`.github/workflows/docker-build.yml`)
+
+自动构建多架构 Docker 镜像：
+- **触发条件**: Push 到 `main` 分支或创建 tag
+- **支持架构**: `linux/amd64`, `linux/arm64`
+- **镜像标签**:
+  - `latest` - main 分支最新版本
+  - `v1.0.0` - 版本标签
+  - `sha-abc1234` - Git commit SHA
 
 ### 配置 GitHub Secrets
 
 在仓库 Settings → Secrets and variables → Actions 中添加：
 
-- `DOCKER_USERNAME` - Docker Hub 用户名
-- `DOCKER_PASSWORD` - Docker Hub 访问令牌
+| Secret | 说明 | 必需 |
+|--------|------|------|
+| `DOCKERHUB_USERNAME` | Docker Hub 用户名 | ✅ |
+| `DOCKERHUB_TOKEN` | Docker Hub 访问令牌 | ✅ |
+| `CODECOV_TOKEN` | Codecov 上传令牌 | ⚪ 可选 |
 
-### 触发构建
+### 发布新版本
 
 ```bash
-# 推送到 main 分支自动构建 latest 标签
-git push origin main
+# 使用 commitizen 自动升级版本
+uv run cz bump
 
-# 创建版本标签自动构建版本镜像
-git tag v1.0.0
-git push origin v1.0.0
+# 推送 tag 触发构建
+git push --follow-tags
 ```
 
-### 支持的架构
+## 📊 测试覆盖率
 
-- `linux/amd64` - x86_64（普通电脑、服务器）
-- `linux/arm64` - ARM64（树莓派 4/5、Apple Silicon）
+当前测试覆盖率：**66%**
 
-## 许可证
+| 模块 | 覆盖率 | 状态 |
+|------|--------|------|
+| `src/api/webhooks.py` | 100% | ✅ |
+| `src/config.py` | 100% | ✅ |
+| `src/utils/language.py` | 100% | ✅ |
+| `src/services/speaker.py` | 97% | ✅ |
+| `src/services/notification.py` | 95% | ✅ |
+| `src/server.py` | 67% | ⚠️ |
+| `src/services/tts.py` | 21% | ⚠️ |
 
-MIT License
+## 🤝 贡献指南
 
-## 相关项目
+欢迎贡献！请遵循以下步骤：
+
+1. Fork 本仓库
+2. 创建特性分支 (`git checkout -b feat/amazing-feature`)
+3. 提交更改 (`git commit -m 'feat: add amazing feature'`)
+4. 推送到分支 (`git push origin feat/amazing-feature`)
+5. 开启 Pull Request
+
+**贡献前请确保**:
+- ✅ 所有测试通过
+- ✅ 代码通过 Ruff 和 Mypy 检查
+- ✅ 添加了必要的测试
+- ✅ 更新了相关文档
+
+## 📄 许可证
+
+MIT License - 详见 [LICENSE](LICENSE) 文件
+
+## 🔗 相关项目
 
 - [MiService](https://github.com/yihong0618/MiService) - 小米云服务接口
-- [Edge TTS](https://github.com/rany2/edge-tts) - 微软 Edge TTS 服务
+- [Piper TTS](https://github.com/rhasspy/piper) - 快速本地神经网络 TTS
 - [FastAPI](https://fastapi.tiangolo.com/) - 现代 Web 框架
+
+## 📮 联系方式
+
+- GitHub Issues: [提交问题](https://github.com/palemoky/xiaomi-speaker/issues)
+- Email: palemoky@gmail.com
+
+---
+
+**⭐ 如果这个项目对你有帮助，请给个 Star！**
