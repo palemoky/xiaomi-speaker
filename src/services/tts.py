@@ -78,6 +78,65 @@ class TTSService:
         
         return None
 
+    def _download_voice_model(self, voice_name: str) -> Path:
+        """Download voice model if not found.
+
+        Args:
+            voice_name: Voice name (e.g., 'zh_CN-huayan-medium')
+
+        Returns:
+            Path to downloaded .onnx file
+
+        Raises:
+            Exception: If download fails
+        """
+        import urllib.request
+
+        logger.info(f"Voice model not found, downloading: {voice_name}")
+        
+        # Construct download URL
+        base_url = "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0"
+        
+        # Parse voice name to get path components
+        if voice_name.startswith("zh_CN"):
+            lang_path = "zh/zh_CN"
+            voice_parts = voice_name.split("-")
+            voice_id = voice_parts[1]  # huayan
+            quality = voice_parts[2]    # medium
+        elif voice_name.startswith("en_US"):
+            lang_path = "en/en_US"
+            voice_parts = voice_name.split("-")
+            voice_id = voice_parts[1]  # lessac
+            quality = voice_parts[2]    # medium
+        else:
+            raise ValueError(f"Unsupported voice: {voice_name}")
+        
+        # Create target directory
+        voice_dir = self.models_dir / lang_path / voice_id / quality
+        voice_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Download .onnx and .onnx.json files
+        files = [
+            f"{voice_name}.onnx",
+            f"{voice_name}.onnx.json",
+        ]
+        
+        for filename in files:
+            url = f"{base_url}/{lang_path}/{voice_id}/{quality}/{filename}"
+            dest = voice_dir / filename
+            
+            logger.info(f"Downloading: {filename}")
+            try:
+                urllib.request.urlretrieve(url, dest)
+                logger.info(f"Downloaded: {dest}")
+            except Exception as e:
+                logger.error(f"Failed to download {filename}: {e}")
+                raise
+        
+        model_path = voice_dir / f"{voice_name}.onnx"
+        logger.info(f"Voice model downloaded successfully: {model_path}")
+        return model_path
+
     def _load_voice(self, language: str) -> PiperVoice:
         """Load Piper voice model for the specified language.
 
@@ -88,7 +147,7 @@ class TTSService:
             Loaded PiperVoice instance
 
         Raises:
-            FileNotFoundError: If voice model not found
+            Exception: If voice model cannot be loaded
         """
         if language == 'zh':
             if self.voice_zh is None:
@@ -97,11 +156,9 @@ class TTSService:
                 
                 model_path = self._find_model_file(voice_name)
                 if model_path is None:
-                    raise FileNotFoundError(
-                        f"Voice model not found: {voice_name}.onnx\n"
-                        f"Please download it using: python -m piper.download {voice_name}\n"
-                        f"Or run: uv run python scripts/download_voices.py"
-                    )
+                    # Auto-download if not found
+                    logger.info(f"Model not found locally, will download: {voice_name}")
+                    model_path = self._download_voice_model(voice_name)
                 
                 self.voice_zh = PiperVoice.load(str(model_path))
                 logger.info(f"Chinese voice loaded from: {model_path}")
@@ -114,11 +171,9 @@ class TTSService:
                 
                 model_path = self._find_model_file(voice_name)
                 if model_path is None:
-                    raise FileNotFoundError(
-                        f"Voice model not found: {voice_name}.onnx\n"
-                        f"Please download it using: python -m piper.download {voice_name}\n"
-                        f"Or run: uv run python scripts/download_voices.py"
-                    )
+                    # Auto-download if not found
+                    logger.info(f"Model not found locally, will download: {voice_name}")
+                    model_path = self._download_voice_model(voice_name)
                 
                 self.voice_en = PiperVoice.load(str(model_path))
                 logger.info(f"English voice loaded from: {model_path}")

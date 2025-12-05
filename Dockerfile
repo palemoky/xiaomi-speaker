@@ -26,10 +26,6 @@ COPY pyproject.toml uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-install-project --no-dev
 
-# 4. 下载 Piper TTS 语音模型
-COPY scripts/download_voices.py ./scripts/
-RUN python scripts/download_voices.py
-
 # ==========================================
 # Stage 2: Runtime (运行时环境)
 # ==========================================
@@ -47,18 +43,20 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 
-# 2. 从 Builder 复制虚拟环境和语音模型
+# 2. 从 Builder 复制虚拟环境
 COPY --from=builder /app/.venv /app/.venv
-COPY --from=builder /root/.local/share/piper-voices /root/.local/share/piper-voices
 
 # 3. 设置 PATH，自动激活虚拟环境
 ENV PATH="/app/.venv/bin:$PATH"
 
-# 4. 复制源代码
+# 4. 复制源代码和脚本
 COPY src ./src
+COPY scripts ./scripts
 
-# 5. 创建缓存目录并设置权限
-RUN mkdir -p /app/audio_cache && chown -R root:root /app/audio_cache
+# 5. 创建缓存目录和模型目录
+RUN mkdir -p /app/audio_cache /root/.local/share/piper-voices \
+    && chown -R root:root /app/audio_cache
+
 
 # 6. 环境配置
 ENV PYTHONPATH=/app
@@ -67,6 +65,5 @@ ENV PYTHONUNBUFFERED=1
 # 7. 暴露端口
 EXPOSE 1810 9527
 
-# 9. 启动命令
-# 使用 python 直接运行，不再依赖 uv run
+# 8. 启动命令（模型会在首次使用时自动下载）
 CMD ["python", "-m", "src.main"]

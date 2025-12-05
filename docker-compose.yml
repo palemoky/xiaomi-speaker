@@ -12,6 +12,7 @@ services:
     volumes:
       - ./audio_cache:/app/audio_cache
       - ./logs:/app/logs
+      - piper-voices:/root/.local/share/piper-voices  # 持久化语音模型
     logging:
       driver: "json-file"
       options:
@@ -22,7 +23,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 10s
+      start_period: 40s  # 首次启动需要下载模型，延长启动时间
 
   # Cloudflare Tunnel
   tunnel:
@@ -36,3 +37,7 @@ services:
     depends_on:
       speaker:
         condition: service_healthy
+
+# 定义命名卷
+volumes:
+  piper-voices:  # 用于持久化 Piper TTS 语音模型
