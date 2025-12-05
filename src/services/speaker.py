@@ -17,15 +17,10 @@ class SpeakerService:
 
     def __init__(self) -> None:
         """Initialize the speaker service."""
-        # Convert device_id to int if it's a numeric string
-        # MiNA API expects int for device IDs
-        device_id_str = settings.mi_did
-        if device_id_str.isdigit():
-            self.device_id = int(device_id_str)
-            logger.info(f"Device ID converted to int: {self.device_id}")
-        else:
-            self.device_id = device_id_str
-            logger.info(f"Device ID kept as string: {self.device_id}")
+        # Device ID should be UUID string (e.g., '3538628d-2c49-4eaf-8420-6b760673296f')
+        # Not the hardware ID (e.g., 77889911)
+        self.device_id = settings.mi_did
+        logger.info(f"Using device ID: {self.device_id}")
         
         self.account: Optional[MiAccount] = None
         self.service: Optional[MiNAService] = None
@@ -47,31 +42,51 @@ class SpeakerService:
             )
             self.service = MiNAService(self.account)
             
-            # Get device list to verify device_id exists
+            # Get device list to find UUID from DID (hardware ID)
             try:
                 devices = await self.service.device_list()
                 logger.info(f"Found {len(devices)} devices")
                 
                 # Log available devices
                 for device in devices:
-                    device_id = device.get('deviceID')
+                    device_id = device.get('deviceID')  # UUID
+                    hardware = device.get('hardware', '')  # DID (hardware ID)
                     name = device.get('name', 'Unknown')
-                    logger.info(f"  Device: {name} (ID: {device_id}, Type: {type(device_id)})")
+                    logger.info(f"  Device: {name} (UUID: {device_id}, DID: {hardware})")
                 
-                # Check if our device_id is in the list
-                device_ids = [d.get('deviceID') for d in devices]
-                if self.device_id not in device_ids:
-                    logger.error(f"Device ID {self.device_id} not found in device list!")
-                    logger.error(f"Available device IDs: {device_ids}")
-                    raise ValueError(
-                        f"Device ID '{self.device_id}' not found. "
-                        f"Available IDs: {device_ids}"
-                    )
+                # If MI_DID is a hardware ID (numeric), find the corresponding UUID
+                if settings.mi_did.replace('-', '').isdigit():
+                    # MI_DID looks like a hardware ID, find the UUID
+                    logger.info(f"MI_DID appears to be a hardware ID: {settings.mi_did}")
+                    for device in devices:
+                        if str(device.get('hardware', '')) == settings.mi_did:
+                            self.device_id = device.get('deviceID')
+                            logger.info(f"Found UUID for DID {settings.mi_did}: {self.device_id}")
+                            break
+                    else:
+                        logger.error(f"Hardware ID {settings.mi_did} not found in device list!")
+                        available_dids = [str(d.get('hardware', '')) for d in devices if d.get('hardware')]
+                        logger.error(f"Available hardware IDs: {available_dids}")
+                        raise ValueError(
+                            f"Hardware ID '{settings.mi_did}' not found. "
+                            f"Available IDs: {available_dids}"
+                        )
+                else:
+                    # MI_DID is already a UUID
+                    device_ids = [d.get('deviceID') for d in devices]
+                    if self.device_id not in device_ids:
+                        logger.error(f"Device UUID {self.device_id} not found in device list!")
+                        logger.error(f"Available UUIDs: {device_ids}")
+                        raise ValueError(
+                            f"Device UUID '{self.device_id}' not found. "
+                            f"Available UUIDs: {device_ids}"
+                        )
                 
             except Exception as e:
-                logger.warning(f"Could not verify device list: {e}")
+                logger.error(f"Failed to get device list: {e}")
+                raise
             
-            logger.info("Successfully connected to Xiaomi account")
+            logger.info(f"Successfully connected, using device UUID: {self.device_id}")
         except Exception as e:
             logger.error(f"Failed to connect to Xiaomi account: {e}")
             logger.error(f"Please check MI_USER, MI_PASS, and MI_DID environment variables")
