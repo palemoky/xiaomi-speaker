@@ -49,9 +49,8 @@ COPY --from=builder /app/.venv /app/.venv
 # 3. 设置 PATH，自动激活虚拟环境
 ENV PATH="/app/.venv/bin:$PATH"
 
-# 4. 复制源代码和脚本
+# 4. 复制源代码
 COPY src ./src
-COPY scripts ./scripts
 
 # 5. 创建缓存目录和模型目录
 RUN mkdir -p /app/audio_cache /root/.local/share/piper-voices \
