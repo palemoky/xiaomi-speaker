@@ -152,6 +152,14 @@ class TTSService:
         if language == 'zh':
             if self.voice_zh is None:
                 voice_name = self.voice_zh_name
+                
+                # Check if Chinese voice is configured
+                if not voice_name:
+                    raise ValueError(
+                        "PIPER_VOICE_ZH is not configured. "
+                        "Either set it in .env or the system will use speaker's built-in TTS for Chinese."
+                    )
+                
                 logger.info(f"Loading Chinese voice: {voice_name}")
                 
                 model_path = self._find_model_file(voice_name)

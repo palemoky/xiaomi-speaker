@@ -90,14 +90,17 @@ class NotificationService:
 
             logger.info(f"Sending notification: {message}")
 
-            # Generate audio using Edge TTS
-            audio_file = await self.tts.generate_speech(message)
-
-            # Get the audio URL for playback
-            audio_url = self._get_audio_url(audio_file)
-
-            # Play audio on speaker (now async)
-            success = await self.speaker.play_audio_url(audio_url)
+            # Check if we should use speaker's built-in TTS
+            if self._should_use_speaker_tts(message):
+                logger.info("Using speaker's built-in TTS for Chinese")
+                success = await self.speaker.play_tts(message)
+            else:
+                # Generate audio using Piper TTS
+                audio_file = await self.tts.generate_speech(message)
+                # Get the audio URL for playback
+                audio_url = self._get_audio_url(audio_file)
+                # Play audio on speaker
+                success = await self.speaker.play_audio_url(audio_url)
 
             if success:
                 logger.info("Notification sent successfully")
@@ -126,6 +129,32 @@ class NotificationService:
         base_url = settings.get_static_server_url()
         return f"{base_url}/{filename}"
 
+    def _should_use_speaker_tts(self, text: str) -> bool:
+        """Determine if we should use speaker's built-in TTS.
+        
+        Args:
+            text: Text to analyze
+            
+        Returns:
+            True if should use speaker's built-in TTS, False otherwise
+        """
+        # If Piper Chinese voice is not configured, use speaker's TTS for Chinese
+        if not settings.piper_voice_zh:
+            # Detect if text is primarily Chinese
+            chinese_chars = sum(1 for c in text if '\u4e00' <= c <= '\u9fff')
+            total_chars = len(text.strip())
+            
+            if total_chars == 0:
+                return False
+            
+            # If more than 30% are Chinese characters, use speaker's TTS
+            chinese_ratio = chinese_chars / total_chars
+            logger.debug(f"Chinese ratio: {chinese_ratio:.2%}, Piper ZH configured: {bool(settings.piper_voice_zh)}")
+            
+            return chinese_ratio > 0.3
+        
+        return False
+
     async def send_custom_notification(self, message: str) -> bool:
         """Send a custom notification message.
 
@@ -138,14 +167,17 @@ class NotificationService:
         try:
             logger.info(f"Sending custom notification: {message}")
 
-            # Generate audio using Edge TTS
-            audio_file = await self.tts.generate_speech(message)
-
-            # Get the audio URL for playback
-            audio_url = self._get_audio_url(audio_file)
-
-            # Play audio on speaker (now async)
-            success = await self.speaker.play_audio_url(audio_url)
+            # Check if we should use speaker's built-in TTS
+            if self._should_use_speaker_tts(message):
+                logger.info("Using speaker's built-in TTS for Chinese")
+                success = await self.speaker.play_tts(message)
+            else:
+                # Generate audio using Piper TTS
+                audio_file = await self.tts.generate_speech(message)
+                # Get the audio URL for playback
+                audio_url = self._get_audio_url(audio_file)
+                # Play audio on speaker
+                success = await self.speaker.play_audio_url(audio_url)
 
             if success:
                 logger.info("Custom notification sent successfully")

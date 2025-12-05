@@ -35,9 +35,9 @@ class Settings(BaseSettings):
     )
 
     # Piper TTS Configuration
-    piper_voice_zh: str = Field(
-        default="zh_CN-huayan-medium",
-        description="Piper voice model for Chinese",
+    piper_voice_zh: Optional[str] = Field(
+        default=None,
+        description="Piper voice model for Chinese (if not set, use speaker's built-in TTS)",
     )
     piper_voice_en: str = Field(
         default="en_US-lessac-medium",
