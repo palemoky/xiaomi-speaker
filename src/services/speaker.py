@@ -70,12 +70,33 @@ class SpeakerService:
 
         try:
             logger.info(f"Playing audio from URL: {audio_url}")
+            logger.debug(f"Device ID: {self.device_id}, Type: {type(self.device_id)}")
+            
             # Use MiNAService to play audio by URL
             result = await self.service.play_by_url(self.device_id, audio_url)
-            logger.info(f"Audio playback initiated: {result}")
-            return True
+            
+            logger.info(f"play_by_url result: {result}")
+            logger.debug(f"Result type: {type(result)}")
+            
+            # Check if result indicates success
+            # MiNA API might return different formats
+            if result is None or result == "":
+                logger.info("Audio playback initiated successfully (no error)")
+                return True
+            elif isinstance(result, dict):
+                if result.get("code") == 0 or result.get("status") == "success":
+                    logger.info("Audio playback initiated successfully")
+                    return True
+                else:
+                    logger.error(f"API returned error: {result}")
+                    return False
+            else:
+                # Unknown result format, log it
+                logger.warning(f"Unexpected result format: {result}")
+                return True  # Assume success if no exception
+                
         except Exception as e:
-            logger.error(f"Failed to play audio: {e}")
+            logger.error(f"Failed to play audio: {e}", exc_info=True)
             return False
 
     async def play_tts(self, text: str) -> bool:
