@@ -34,13 +34,23 @@ class Settings(BaseSettings):
         default=1810, description="Static file server port"
     )
 
-    # Edge TTS Configuration
-    tts_voice: str = Field(
-        default="zh-CN-XiaoxiaoNeural",
-        description="Edge TTS voice for Chinese",
+    # Piper TTS Configuration
+    piper_voice_zh: str = Field(
+        default="zh_CN-huayan-medium",
+        description="Piper voice model for Chinese",
     )
-    tts_rate: str = Field(default="+0%", description="Speech rate adjustment")
-    tts_volume: str = Field(default="+0%", description="Speech volume adjustment")
+    piper_voice_en: str = Field(
+        default="en_US-lessac-medium",
+        description="Piper voice model for English",
+    )
+    piper_speaker: int = Field(
+        default=0,
+        description="Speaker ID for multi-speaker models",
+    )
+    piper_length_scale: float = Field(
+        default=1.0,
+        description="Speech speed (1.0 = normal, <1.0 = faster, >1.0 = slower)",
+    )
 
     # Notification Templates
     notification_template_failure: str = Field(
@@ -64,8 +74,8 @@ class Settings(BaseSettings):
 
     def get_static_server_url(self) -> str:
         """Get the base URL for the static file server."""
-        # Use localhost for local access from the same machine
-        return f"http://localhost:{self.static_server_port}"
+        # Use configured host (e.g., Raspberry Pi IP) for network access
+        return f"http://{self.static_server_host}:{self.static_server_port}"
 
     def ensure_audio_cache_dir(self) -> None:
         """Ensure the audio cache directory exists."""

@@ -1,11 +1,12 @@
-"""Edge TTS service for generating natural Chinese audio."""
+"""Piper TTS service for generating natural speech locally."""
 
 import hashlib
 import logging
+import wave
 from pathlib import Path
 from typing import Optional
 
-import edge_tts
+from piper import PiperVoice
 
 from src.config import settings
 
@@ -13,69 +14,182 @@ logger = logging.getLogger(__name__)
 
 
 class TTSService:
-    """Service for text-to-speech conversion using Edge TTS."""
+    """Service for text-to-speech conversion using Piper TTS."""
 
     def __init__(self) -> None:
         """Initialize the TTS service."""
-        self.voice = settings.tts_voice
-        self.rate = settings.tts_rate
-        self.volume = settings.tts_volume
+        self.voice_zh_name = settings.piper_voice_zh
+        self.voice_en_name = settings.piper_voice_en
+        self.speaker = settings.piper_speaker
+        self.length_scale = settings.piper_length_scale
         self.cache_dir = settings.audio_cache_dir
         settings.ensure_audio_cache_dir()
+        
+        # Model directory (default Piper location or custom)
+        self.models_dir = Path.home() / ".local" / "share" / "piper-voices"
+        self.models_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Lazy load voices (will be loaded on first use)
+        self.voice_zh: Optional[PiperVoice] = None
+        self.voice_en: Optional[PiperVoice] = None
 
-    def _get_cache_filename(self, text: str) -> str:
-        """Generate a cache filename based on text hash.
+    def _detect_language(self, text: str) -> str:
+        """Detect the primary language of the text.
+
+        Args:
+            text: Text to analyze
+
+        Returns:
+            'zh' for Chinese, 'en' for English
+        """
+        # Count Chinese characters (CJK Unified Ideographs)
+        chinese_chars = sum(1 for c in text if '\u4e00' <= c <= '\u9fff')
+        total_chars = len(text.strip())
+        
+        if total_chars == 0:
+            return 'zh'  # Default to Chinese
+        
+        # If more than 30% are Chinese characters, use Chinese voice
+        chinese_ratio = chinese_chars / total_chars
+        logger.debug(f"Text language detection: {chinese_ratio:.2%} Chinese characters")
+        
+        return 'zh' if chinese_ratio > 0.3 else 'en'
+
+    def _find_model_file(self, voice_name: str) -> Optional[Path]:
+        """Find the .onnx model file for a voice.
+
+        Args:
+            voice_name: Voice name (e.g., 'zh_CN-huayan-medium')
+
+        Returns:
+            Path to .onnx file if found, None otherwise
+        """
+        # Search in models directory
+        for model_file in self.models_dir.rglob(f"{voice_name}.onnx"):
+            logger.debug(f"Found model: {model_file}")
+            return model_file
+        
+        # Also check in audio_cache/voices (for Docker volume mounts)
+        alt_dir = self.cache_dir / "voices"
+        if alt_dir.exists():
+            for model_file in alt_dir.rglob(f"{voice_name}.onnx"):
+                logger.debug(f"Found model in cache: {model_file}")
+                return model_file
+        
+        return None
+
+    def _load_voice(self, language: str) -> PiperVoice:
+        """Load Piper voice model for the specified language.
+
+        Args:
+            language: 'zh' or 'en'
+
+        Returns:
+            Loaded PiperVoice instance
+
+        Raises:
+            FileNotFoundError: If voice model not found
+        """
+        if language == 'zh':
+            if self.voice_zh is None:
+                voice_name = self.voice_zh_name
+                logger.info(f"Loading Chinese voice: {voice_name}")
+                
+                model_path = self._find_model_file(voice_name)
+                if model_path is None:
+                    raise FileNotFoundError(
+                        f"Voice model not found: {voice_name}.onnx\n"
+                        f"Please download it using: python -m piper.download {voice_name}\n"
+                        f"Or run: uv run python scripts/download_voices.py"
+                    )
+                
+                self.voice_zh = PiperVoice.load(str(model_path))
+                logger.info(f"Chinese voice loaded from: {model_path}")
+            
+            return self.voice_zh
+        else:
+            if self.voice_en is None:
+                voice_name = self.voice_en_name
+                logger.info(f"Loading English voice: {voice_name}")
+                
+                model_path = self._find_model_file(voice_name)
+                if model_path is None:
+                    raise FileNotFoundError(
+                        f"Voice model not found: {voice_name}.onnx\n"
+                        f"Please download it using: python -m piper.download {voice_name}\n"
+                        f"Or run: uv run python scripts/download_voices.py"
+                    )
+                
+                self.voice_en = PiperVoice.load(str(model_path))
+                logger.info(f"English voice loaded from: {model_path}")
+            
+            return self.voice_en
+
+    def _get_cache_filename(self, text: str, language: str) -> str:
+        """Generate a cache filename based on text hash and language.
 
         Args:
             text: The text to convert to speech
+            language: Language code ('zh' or 'en')
 
         Returns:
             Filename for the cached audio file
         """
-        # Create a hash of the text and TTS settings
-        content = f"{text}_{self.voice}_{self.rate}_{self.volume}"
+        # Create a hash of the text, language, and TTS settings
+        content = f"{text}_{language}_{self.speaker}_{self.length_scale}"
         text_hash = hashlib.md5(content.encode()).hexdigest()
-        return f"{text_hash}.mp3"
+        return f"{text_hash}.wav"
 
     async def generate_speech(
         self,
         text: str,
         use_cache: bool = True,
     ) -> Path:
-        """Generate speech from text using Edge TTS.
+        """Generate speech from text using Piper TTS with language detection.
 
         Args:
             text: The text to convert to speech
             use_cache: Whether to use cached audio if available
 
         Returns:
-            Path to the generated audio file
+            Path to the generated audio file (WAV format)
 
         Raises:
             Exception: If TTS generation fails
         """
-        cache_file = self.cache_dir / self._get_cache_filename(text)
+        # Detect language
+        language = self._detect_language(text)
+        logger.info(f"Detected language: {language} for text: {text[:50]}...")
+        
+        cache_file = self.cache_dir / self._get_cache_filename(text, language)
 
         # Return cached file if it exists and caching is enabled
-        if use_cache and cache_file.exists():
+        if use_cache and cache_file.exists() and cache_file.stat().st_size > 0:
             logger.info(f"Using cached audio: {cache_file}")
             return cache_file
 
         try:
-            logger.info(f"Generating speech for: {text}")
-            communicate = edge_tts.Communicate(
-                text=text,
-                voice=self.voice,
-                rate=self.rate,
-                volume=self.volume,
-            )
-
-            await communicate.save(str(cache_file))
-            logger.info(f"Generated audio saved to: {cache_file}")
-            return cache_file
+            logger.info(f"Generating speech with Piper TTS ({language})")
+            
+            # Load appropriate voice
+            voice = self._load_voice(language)
+            
+            # Generate audio using synthesize_wav
+            with wave.open(str(cache_file), "wb") as wav_file:
+                voice.synthesize_wav(text, wav_file)
+            
+            # Verify the file was created
+            if cache_file.exists() and cache_file.stat().st_size > 0:
+                logger.info(f"Generated audio saved to: {cache_file} ({cache_file.stat().st_size} bytes)")
+                return cache_file
+            else:
+                raise Exception("Generated file is empty or does not exist")
 
         except Exception as e:
             logger.error(f"Failed to generate speech: {e}")
+            # Clean up failed file
+            if cache_file.exists():
+                cache_file.unlink()
             raise
 
     async def clear_cache(self, max_age_days: Optional[int] = None) -> int:
@@ -92,7 +206,7 @@ class TTSService:
 
         deleted_count = 0
 
-        for audio_file in self.cache_dir.glob("*.mp3"):
+        for audio_file in self.cache_dir.glob("*.wav"):
             should_delete = False
 
             if max_age_days is None:
@@ -114,3 +228,4 @@ class TTSService:
 
         logger.info(f"Cleared {deleted_count} cached audio files")
         return deleted_count
+
