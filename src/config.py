@@ -18,9 +18,9 @@ class Settings(BaseSettings):
     )
 
     # Xiaomi Account Configuration
-    mi_user: str = Field(..., description="Xiaomi account username/email")
-    mi_pass: str = Field(..., description="Xiaomi account password")
-    mi_did: str = Field(..., description="Xiaomi device ID or name")
+    mi_user: str = Field(default="", description="Xiaomi account username/email")
+    mi_pass: str = Field(default="", description="Xiaomi account password")
+    mi_did: str = Field(default="", description="Xiaomi device ID or name")
 
     # Server Configuration
     server_host: str = Field(default="0.0.0.0", description="Webhook server host")
