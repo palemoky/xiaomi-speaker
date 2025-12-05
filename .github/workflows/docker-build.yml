@@ -75,7 +75,7 @@ jobs:
           if [ -n "${{ secrets.SPEAKER_WEBHOOK_URL }}" ]; then
             curl -X POST "${{ secrets.SPEAKER_WEBHOOK_URL }}" \
             -H "Content-Type: application/json" \
-            -H "x-token: ${{ secrets.SPEAKER_TOKEN }}" \
+            -H "X-API-Key: ${{ secrets.SPEAKER_TOKEN }}" \
             -H "CF-Access-Client-Id: ${{ secrets.CF_CLIENT_ID }}" \
             -H "CF-Access-Client-Secret: ${{ secrets.CF_CLIENT_SECRET }}" \
             -d '{"text": "Ship it! The code is live."}' || true
@@ -87,7 +87,7 @@ jobs:
           if [ -n "${{ secrets.SPEAKER_WEBHOOK_URL }}" ]; then
             curl -X POST "${{ secrets.SPEAKER_WEBHOOK_URL }}" \
             -H "Content-Type: application/json" \
-            -H "x-token: ${{ secrets.SPEAKER_TOKEN }}" \
+            -H "X-API-Key: ${{ secrets.SPEAKER_TOKEN }}" \
             -H "CF-Access-Client-Id: ${{ secrets.CF_CLIENT_ID }}" \
             -H "CF-Access-Client-Secret: ${{ secrets.CF_CLIENT_SECRET }}" \
             -d '{"text": "Mayday! Mayday! The code is broken, I repeat, the code is broken!"}' || true
