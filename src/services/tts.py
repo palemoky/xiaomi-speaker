@@ -9,6 +9,7 @@ from typing import Optional
 from piper import PiperVoice
 
 from src.config import settings
+from src.utils.language import detect_language
 
 logger = logging.getLogger(__name__)
 
@@ -32,28 +33,6 @@ class TTSService:
         # Lazy load voices (will be loaded on first use)
         self.voice_zh: Optional[PiperVoice] = None
         self.voice_en: Optional[PiperVoice] = None
-
-    def _detect_language(self, text: str) -> str:
-        """Detect the primary language of the text.
-
-        Args:
-            text: Text to analyze
-
-        Returns:
-            'zh' for Chinese, 'en' for English
-        """
-        # Count Chinese characters (CJK Unified Ideographs)
-        chinese_chars = sum(1 for c in text if '\u4e00' <= c <= '\u9fff')
-        total_chars = len(text.strip())
-        
-        if total_chars == 0:
-            return 'zh'  # Default to Chinese
-        
-        # If more than 30% are Chinese characters, use Chinese voice
-        chinese_ratio = chinese_chars / total_chars
-        logger.debug(f"Text language detection: {chinese_ratio:.2%} Chinese characters")
-        
-        return 'zh' if chinese_ratio > 0.3 else 'en'
 
     def _find_model_file(self, voice_name: str) -> Optional[Path]:
         """Find the .onnx model file for a voice.
@@ -221,7 +200,7 @@ class TTSService:
             Exception: If TTS generation fails
         """
         # Detect language
-        language = self._detect_language(text)
+        language = detect_language(text)
         logger.info(f"Detected language: {language} for text: {text[:50]}...")
         
         cache_file = self.cache_dir / self._get_cache_filename(text, language)
