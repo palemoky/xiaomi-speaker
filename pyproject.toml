@@ -1,9 +1,21 @@
 [project]
 name = "xiaomi-speaker"
 version = "0.1.0"
-description = "GitHub notification system for Xiaomi speaker using MiService and Edge TTS"
+description = "GitHub notification system for Xiaomi speaker using MiService and Piper TTS"
 readme = "README.md"
 requires-python = ">=3.13"
+license = {text = "MIT"}
+authors = [
+    {name = "Palemoky", email = "palemoky@gmail.com"}
+]
+keywords = ["xiaomi", "speaker", "notification", "tts", "miservice", "piper"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Home Automation",
+]
+
 dependencies = [
     "fastapi>=0.123.0",
     "uvicorn[standard]>=0.38.0",
@@ -14,6 +26,10 @@ dependencies = [
     "python-dotenv>=1.2.0",
     "httpx>=0.28.0",
 ]
+
+[project.urls]
+Repository = "https://github.com/palemoky/xiaomi-speaker"
+Issues = "https://github.com/palemoky/xiaomi-speaker/issues"
 
 [project.optional-dependencies]
 dev = [
@@ -36,21 +52,51 @@ packages = ["src"]
 [tool.hatch.build.targets.editable]
 packages = ["src"]
 
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-python_files = ["test_*.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
-asyncio_mode = "auto"
-addopts = [
-    "-v",
-    "--strict-markers",
-    "--tb=short",
-    "--cov=src",
-    "--cov-report=term-missing",
-    "--cov-report=html",
+# =======================================================
+# Ruff Configuration
+# =======================================================
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
 ]
 
+[tool.ruff.lint.isort]
+known-first-party = ["src"]
+
+# =======================================================
+# Mypy Configuration
+# =======================================================
+[tool.mypy]
+python_version = "3.13"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false  # Gradually enable
+check_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = "miservice.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "piper.*"
+ignore_missing_imports = true
+
+# =======================================================
+# Coverage Configuration
+# =======================================================
 [tool.coverage.run]
 source = ["src"]
 omit = ["*/tests/*", "*/__pycache__/*"]
@@ -64,3 +110,58 @@ exclude_lines = [
     "if __name__ == .__main__.:",
     "if TYPE_CHECKING:",
 ]
+
+# =======================================================
+# Pytest Configuration
+# =======================================================
+[tool.pytest.ini_options]
+minversion = "6.0"
+testpaths = ["tests"]
+pythonpath = ["."]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+asyncio_mode = "auto"
+addopts = [
+    "-ra",
+    "-q",
+    "--strict-markers",
+    "--strict-config",
+    "--cov=src",
+    "--cov-report=term-missing:skip-covered",
+    "--cov-report=html",
+    "--cov-report=xml",
+    "-n auto",
+]
+
+# =======================================================
+# Commitizen Configuration
+# =======================================================
+[tool.commitizen]
+tag_format = "v$version"
+version_scheme = "pep440"
+version_provider = "pep621"
+update_changelog_on_bump = true
+major_version_zero = true
+
+scopes = [
+    "api",        # API endpoints
+    "speaker",    # Speaker service
+    "tts",        # TTS service
+    "webhook",    # Webhook handlers
+    "notification", # Notification service
+    "config",     # Configuration
+    "docker",     # Docker related
+    "ci",         # CI/CD
+    "deps",       # Dependencies
+    "docs",       # Documentation
+    "test",       # Tests
+]
+
+bump_message = "chore(release): bump version $current_version -> $new_version"
+annotated_tag = true
+changelog_file = "CHANGELOG.md"
+changelog_incremental = false
+
+[tool.commitizen.customize]
+changelog_pattern = "^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\\(.*\\))?:!?"
