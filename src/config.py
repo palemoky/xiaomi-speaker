@@ -71,6 +71,11 @@ class Settings(BaseSettings):
     github_webhook_secret: Optional[str] = Field(
         default=None, description="GitHub webhook secret for signature verification"
     )
+    
+    # API Security (optional)
+    api_secret: Optional[str] = Field(
+        default=None, description="API secret for custom webhook authentication"
+    )
 
     def get_static_server_url(self) -> str:
         """Get the base URL for the static file server."""

@@ -3,9 +3,10 @@
 import hashlib
 import hmac
 import logging
+import secrets
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, Header, HTTPException, Request, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 
 from src.config import settings
 from src.services.notification import NotificationService
@@ -51,6 +52,41 @@ def verify_github_signature(
     computed_signature = mac.hexdigest()
 
     return hmac.compare_digest(computed_signature, expected_signature)
+
+
+async def verify_api_key(x_api_key: Optional[str] = Header(None)) -> str:
+    """Verify API key from request header.
+    
+    Args:
+        x_api_key: API key from X-API-Key header
+        
+    Returns:
+        The verified API key
+        
+    Raises:
+        HTTPException: If API key is missing or invalid
+    """
+    # If API secret is not configured, skip verification
+    if not settings.api_secret:
+        logger.warning("API_SECRET not configured, skipping authentication")
+        return "not_configured"
+    
+    if x_api_key is None:
+        logger.warning("Missing API key in request")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing X-API-Key header"
+        )
+    
+    # Use secrets.compare_digest for secure string comparison
+    if not secrets.compare_digest(x_api_key, settings.api_secret):
+        logger.warning("Invalid API key provided")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid API key"
+        )
+    
+    return x_api_key
 
 
 @router.post("/github")
@@ -250,11 +286,15 @@ async def handle_check_run(payload: Dict[str, Any]) -> Dict[str, Any]:
 
 
 @router.post("/custom")
-async def custom_notification(request: Request) -> Dict[str, Any]:
+async def custom_notification(
+    request: Request,
+    api_key: str = Depends(verify_api_key)
+) -> Dict[str, Any]:
     """Send a custom notification.
 
     Args:
         request: FastAPI request with JSON body containing "message" field
+        api_key: Verified API key from header (injected by dependency)
 
     Returns:
         Response dictionary
