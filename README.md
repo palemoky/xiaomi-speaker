@@ -2,10 +2,11 @@
 
 通过 Docker 运行的 GitHub 通知系统，使用 MiService + Piper TTS 实现小米音箱播报 GitHub Actions 状态。
 
+[![Docker Hub](https://img.shields.io/docker/v/palemoky/xiaomi-speaker?label=Docker%20Hub&logo=docker)](https://hub.docker.com/r/palemoky/xiaomi-speaker)
+[![Docker Image Size](https://img.shields.io/docker/image-size/palemoky/xiaomi-speaker/latest)](https://hub.docker.com/r/palemoky/xiaomi-speaker)
 [![Tests](https://github.com/palemoky/xiaomi-speaker/actions/workflows/test.yml/badge.svg)](https://github.com/palemoky/xiaomi-speaker/actions/workflows/test.yml)
-[![Docker Build](https://github.com/palemoky/xiaomi-speaker/actions/workflows/docker-build.yml/badge.svg)](https://github.com/palemoky/xiaomi-speaker/actions/workflows/docker-build.yml)
+[![Release](https://github.com/palemoky/xiaomi-speaker/actions/workflows/release.yml/badge.svg)](https://github.com/palemoky/xiaomi-speaker/actions/workflows/release.yml)
 [![codecov](https://codecov.io/gh/palemoky/xiaomi-speaker/branch/main/graph/badge.svg)](https://codecov.io/gh/palemoky/xiaomi-speaker)
-[![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=flat&logo=docker&logoColor=white)](https://www.docker.com/)
 [![Python 3.13](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org/downloads/)
 
 ## ✨ 功能特性
