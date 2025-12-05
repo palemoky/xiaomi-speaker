@@ -2,7 +2,6 @@
 
 import logging
 from http.server import HTTPServer, SimpleHTTPRequestHandler
-from pathlib import Path
 from threading import Thread
 
 from src.config import settings
@@ -25,7 +24,7 @@ class AudioFileHandler(SimpleHTTPRequestHandler):
 class StaticFileServer:
     """HTTP server for serving static audio files."""
 
-    def __init__(self, host: str = None, port: int = None):
+    def __init__(self, host: str | None = None, port: int | None = None):
         """Initialize the static file server.
 
         Args:
@@ -34,8 +33,8 @@ class StaticFileServer:
         """
         self.host = host or settings.static_server_host
         self.port = port or settings.static_server_port
-        self.server: HTTPServer = None
-        self.thread: Thread = None
+        self.server: HTTPServer | None = None
+        self.thread: Thread | None = None
 
         # Ensure audio cache directory exists
         settings.ensure_audio_cache_dir()
@@ -52,9 +51,7 @@ class StaticFileServer:
                 AudioFileHandler,
             )
 
-            logger.info(
-                f"Starting static file server on {self.host}:{self.port}"
-            )
+            logger.info(f"Starting static file server on {self.host}:{self.port}")
             logger.info(f"Serving files from: {settings.audio_cache_dir}")
 
             # Run server in background thread

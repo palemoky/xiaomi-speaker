@@ -1,8 +1,6 @@
 """MiService integration for Xiaomi speaker control."""
 
-import asyncio
 import logging
-from typing import Optional
 
 from aiohttp import ClientSession
 from miservice import MiAccount, MiNAService
@@ -21,44 +19,42 @@ class SpeakerService:
         # 在 connect() 成功后，它会被更新为真实的 UUID
         self.device_id = str(settings.mi_did)
         logger.info(f"Configured device identifier: {self.device_id}")
-        
-        self.account: Optional[MiAccount] = None
-        self.service: Optional[MiNAService] = None
-        self.session: Optional[ClientSession] = None
+
+        self.account: MiAccount | None = None
+        self.service: MiNAService | None = None
+        self.session: ClientSession | None = None
 
     async def connect(self) -> None:
         """Connect to Xiaomi account and initialize MiNA service."""
         try:
             logger.info("Connecting to Xiaomi account...")
-            
+
             if not self.session:
                 self.session = ClientSession()
-            
+
             self.account = MiAccount(
-                session=self.session,
-                username=settings.mi_user,
-                password=settings.mi_pass
+                session=self.session, username=settings.mi_user, password=settings.mi_pass
             )
             self.service = MiNAService(self.account)
-            
+
             # Get device list to find the correct UUID
             try:
                 devices = await self.service.device_list()
                 logger.info(f"Found {len(devices)} devices attached to account")
-                
+
                 target_did = self.device_id
-                
+
                 # Build lookup dictionaries for O(1) access
                 devices_by_uuid = {}
                 devices_by_miot_did = {}
                 devices_by_name = {}
-                
+
                 for device in devices:
-                    d_name = device.get('name', 'Unknown')
-                    d_uuid = device.get('deviceID', '')
-                    d_miot_did = str(device.get('miotDID', ''))
-                    d_hardware = device.get('hardware', '')
-                    
+                    d_name = device.get("name", "Unknown")
+                    d_uuid = device.get("deviceID", "")
+                    d_miot_did = str(device.get("miotDID", ""))
+                    d_hardware = device.get("hardware", "")
+
                     # Build lookup dictionaries
                     if d_uuid:
                         devices_by_uuid[d_uuid] = device
@@ -66,13 +62,15 @@ class SpeakerService:
                         devices_by_miot_did[d_miot_did] = device
                     if d_name:
                         devices_by_name[d_name] = device
-                    
+
                     # Debug log
-                    logger.debug(f"Device: Name='{d_name}', Model='{d_hardware}', MiotDID='{d_miot_did}', UUID='{d_uuid}'")
-                
+                    logger.debug(
+                        f"Device: Name='{d_name}', Model='{d_hardware}', MiotDID='{d_miot_did}', UUID='{d_uuid}'"
+                    )
+
                 # Try to find device (priority: UUID > MiotDID > Name)
                 found_device = None
-                
+
                 if target_did in devices_by_uuid:
                     found_device = devices_by_uuid[target_did]
                     logger.info(f"Matched device by UUID: {target_did}")
@@ -85,8 +83,10 @@ class SpeakerService:
 
                 if found_device:
                     # Update self.device_id to UUID for API calls
-                    self.device_id = found_device.get('deviceID')
-                    logger.info(f"Connected to: {found_device.get('name')} (UUID: {self.device_id})")
+                    self.device_id = found_device.get("deviceID")
+                    logger.info(
+                        f"Connected to: {found_device.get('name')} (UUID: {self.device_id})"
+                    )
                 else:
                     # Device not found, print available devices
                     logger.error(f"Target device '{target_did}' not found in account!")
@@ -98,14 +98,14 @@ class SpeakerService:
                             f"UUID: {d.get('deviceID')}"
                         )
                     raise ValueError(f"Device '{target_did}' not found.")
-                
+
             except Exception as e:
                 logger.error(f"Failed to get device list or find device: {e}")
                 raise
-            
+
         except Exception as e:
             logger.error(f"Failed to connect to Xiaomi account: {e}")
-            logger.error(f"Please check MI_USER, MI_PASS, and MI_DID environment variables")
+            logger.error("Please check MI_USER, MI_PASS, and MI_DID environment variables")
             raise
 
     async def close(self) -> None:
@@ -116,16 +116,19 @@ class SpeakerService:
 
     async def play_audio_url(self, audio_url: str) -> bool:
         """Play audio from URL on the speaker."""
+        # Auto-connect if not connected
         if not self.service:
             await self.connect()
+
+        assert self.service is not None  # For mypy
 
         try:
             logger.info(f"Playing audio from URL: {audio_url}")
             # Use MiNAService to play audio by URL (requires UUID)
             result = await self.service.play_by_url(self.device_id, audio_url)
-            
+
             logger.debug(f"play_by_url result: {result}")
-            
+
             # Check result
             if result is None or result == "":
                 return True
@@ -136,7 +139,7 @@ class SpeakerService:
                     logger.error(f"API returned error: {result}")
                     return False
             return True
-                
+
         except Exception as e:
             logger.error(f"Failed to play audio: {e}", exc_info=True)
             return False
@@ -145,6 +148,8 @@ class SpeakerService:
         """Play text-to-speech on the speaker."""
         if not self.service:
             await self.connect()
+
+        assert self.service is not None  # For mypy
 
         try:
             logger.info(f"Playing TTS: {text}")
@@ -159,6 +164,8 @@ class SpeakerService:
         """Set speaker volume."""
         if not self.service:
             await self.connect()
+
+        assert self.service is not None  # For mypy
 
         if not 0 <= volume <= 100:
             logger.error(f"Invalid volume level: {volume}")

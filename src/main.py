@@ -14,7 +14,7 @@ from src.static_server import StaticFileServer
 logger = logging.getLogger(__name__)
 
 # Global server instances
-static_server: StaticFileServer = None
+static_server: StaticFileServer | None = None
 shutdown_event = asyncio.Event()
 
 
@@ -46,7 +46,9 @@ def main():
         # Start FastAPI webhook server
         logger.info("Starting webhook server...")
         logger.info(f"Webhook server: http://{settings.server_host}:{settings.server_port}")
-        logger.info(f"Static server: http://{settings.static_server_host}:{settings.static_server_port}")
+        logger.info(
+            f"Static server: http://{settings.static_server_host}:{settings.static_server_port}"
+        )
 
         # Run uvicorn server
         config = uvicorn.Config(
