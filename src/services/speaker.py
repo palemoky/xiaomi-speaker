@@ -17,33 +17,60 @@ class SpeakerService:
 
     def __init__(self) -> None:
         """Initialize the speaker service."""
-        self.session: Optional[ClientSession] = None
+        # Convert device_id to int if it's a numeric string
+        # MiNA API expects int for device IDs
+        device_id_str = settings.mi_did
+        if device_id_str.isdigit():
+            self.device_id = int(device_id_str)
+            logger.info(f"Device ID converted to int: {self.device_id}")
+        else:
+            self.device_id = device_id_str
+            logger.info(f"Device ID kept as string: {self.device_id}")
+        
         self.account: Optional[MiAccount] = None
         self.service: Optional[MiNAService] = None
-        self.device_id = settings.mi_did
+        self.session: Optional[ClientSession] = None
 
     async def connect(self) -> None:
-        """Connect to Xiaomi account and initialize service.
-
-        Raises:
-            Exception: If connection fails
-        """
+        """Connect to Xiaomi account and initialize MiNA service."""
         try:
             logger.info("Connecting to Xiaomi account...")
             logger.debug(f"MI_USER: {settings.mi_user}, MI_DID: {settings.mi_did}")
             
-            # Create aiohttp session if not exists
             if not self.session:
                 self.session = ClientSession()
             
-            # miservice-fork's MiAccount requires session, username, and password
             self.account = MiAccount(
                 session=self.session,
                 username=settings.mi_user,
                 password=settings.mi_pass
             )
-            
             self.service = MiNAService(self.account)
+            
+            # Get device list to verify device_id exists
+            try:
+                devices = await self.service.device_list()
+                logger.info(f"Found {len(devices)} devices")
+                
+                # Log available devices
+                for device in devices:
+                    device_id = device.get('deviceID')
+                    name = device.get('name', 'Unknown')
+                    logger.info(f"  Device: {name} (ID: {device_id}, Type: {type(device_id)})")
+                
+                # Check if our device_id is in the list
+                device_ids = [d.get('deviceID') for d in devices]
+                if self.device_id not in device_ids:
+                    logger.error(f"Device ID {self.device_id} not found in device list!")
+                    logger.error(f"Available device IDs: {device_ids}")
+                    raise ValueError(
+                        f"Device ID '{self.device_id}' not found. "
+                        f"Available IDs: {device_ids}"
+                    )
+                
+            except Exception as e:
+                logger.warning(f"Could not verify device list: {e}")
+            
             logger.info("Successfully connected to Xiaomi account")
         except Exception as e:
             logger.error(f"Failed to connect to Xiaomi account: {e}")
