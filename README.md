@@ -1,5 +1,7 @@
 <h1 align="center">
-The Voice of Your Code. <br/>你的代码，掷地有声！
+    <img src="https://raw.githubusercontent.com/palemoky/xiaomi-speaker/main/docs/logo.png" alt="Logo" width="128" />
+    <br>
+    The Voice of Your Code. <br/>你的代码，掷地有声！
 </h1>
 
 # Xiaomi Speaker GitHub Notification System
