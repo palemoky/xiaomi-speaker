@@ -18,10 +18,19 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 
 # 3. 安装 Python 依赖
-ENV UV_COMPILE_BYTECODE=1
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_PYTHON_DOWNLOADS=never
+
 COPY pyproject.toml uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-install-project --no-dev --no-editable
+
+# 4. 优化虚拟环境大小
+RUN find /app/.venv -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true \
+    && find /app/.venv -type f -name "*.pyc" -delete \
+    && find /app/.venv -type f -name "*.pyo" -delete \
+    && find /app/.venv -type d -name "tests" -exec rm -rf {} + 2>/dev/null || true \
+    && find /app/.venv -type d -name "test" -exec rm -rf {} + 2>/dev/null || true
 
 # ==========================================
 # Stage 2: Runtime (运行时环境)
@@ -42,7 +51,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 # 2. 从 Builder 复制虚拟环境
 COPY --from=builder /app/.venv /app/.venv
 
-# 3. 设置 PATH，自动激活虚拟环境
+# 3. 设置环境变量
 ENV PATH="/app/.venv/bin:$PATH"
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
@@ -57,6 +66,6 @@ RUN mkdir -p /app/audio_cache /root/.local/share/piper-voices
 EXPOSE 1810 9527
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-  CMD curl -f http://localhost:9527/health || exit 1
+  CMD curl -f http://127.0.0.1:9527/health || exit 1
 
 CMD ["python", "-m", "src.main"]
