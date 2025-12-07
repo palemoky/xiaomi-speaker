@@ -1,5 +1,7 @@
 # GitHub Actions 集成示例
 
+本文档介绍如何将 Xiaomi Speaker 智能语音播报系统与 GitHub Actions 集成，实现自动化的构建和部署通知。
+
 ## 方式一：配置 Webhook（推荐）
 
 最简单的方式，无需修改工作流。

@@ -1,6 +1,6 @@
 # Cloudflare Tunnel 设置指南
 
-本指南介绍如何使用 Cloudflare Tunnel 将本地运行的 xiaomi-speaker 服务暴露到公网，以便 GitHub 可以发送 webhook 请求。
+本指南介绍如何使用 Cloudflare Tunnel 将本地运行的 xiaomi-speaker 服务暴露到公网，以便从互联网访问（例如接收 GitHub webhook、远程 API 调用等）。
 
 ## 方式一：使用 Docker Compose（推荐）
 
