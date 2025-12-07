@@ -12,8 +12,8 @@
 [![Docker Image Size](https://img.shields.io/docker/image-size/palemoky/xiaomi-speaker/latest)](https://hub.docker.com/r/palemoky/xiaomi-speaker)
 [![Tests](https://github.com/palemoky/xiaomi-speaker/actions/workflows/test.yml/badge.svg)](https://github.com/palemoky/xiaomi-speaker/actions/workflows/test.yml)
 [![Release](https://github.com/palemoky/xiaomi-speaker/actions/workflows/release.yml/badge.svg)](https://github.com/palemoky/xiaomi-speaker/actions/workflows/release.yml)
-[![codecov](https://codecov.io/gh/palemoky/xiaomi-speaker/graph/badge.svg)](https://codecov.io/gh/palemoky/xiaomi-speaker)
 [![Python 3.13](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org/downloads/)
+
 
 ## ✨ 功能特性
 
@@ -521,7 +521,6 @@ git commit -m "fix(speaker): resolve connection timeout issue"
 - ✅ Mypy 类型检查
 - ✅ Pytest 单元测试（81 个测试）
 - ✅ 代码覆盖率报告（66%）
-- ✅ 上传到 Codecov
 
 #### Docker 构建工作流 (`.github/workflows/docker-build.yml`)
 
@@ -541,7 +540,6 @@ git commit -m "fix(speaker): resolve connection timeout issue"
 |--------|------|------|
 | `DOCKERHUB_USERNAME` | Docker Hub 用户名 | ✅ |
 | `DOCKERHUB_TOKEN` | Docker Hub 访问令牌 | ✅ |
-| `CODECOV_TOKEN` | Codecov 上传令牌 | ⚪ 可选 |
 
 ### 发布新版本
 
