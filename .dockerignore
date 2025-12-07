@@ -10,6 +10,8 @@ systemd/
 test_system.py
 start.sh
 .python-version
+
+# Python
 __pycache__
 *.pyc
 *.pyo
@@ -20,6 +22,22 @@ __pycache__
 *.egg-info
 dist
 build
+
+# Python tool caches
+.mypy_cache
+.pytest_cache
+.ruff_cache
+.hypothesis
+.tox
+.nox
+*_cache
+
+# Coverage reports
+.coverage
+coverage.xml
+htmlcov
+
+# Project specific
 audio_cache/*
 !audio_cache/.gitkeep
 logs/*
