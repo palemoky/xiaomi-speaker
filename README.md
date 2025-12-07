@@ -32,7 +32,7 @@
 
 ```mermaid
 graph TD
-    A[外部触发源] -->|Webhook/API| B[Cloudflare Tunnel]
+    A[External Trigger] -->|Webhook/API| B[Cloudflare Tunnel]
     B -->|HTTPS| C[FastAPI Server :9527]
     C -->|Generate| D[Piper TTS]
     D -->|Save| E[Audio Cache]
@@ -44,9 +44,9 @@ graph TD
     C -->|Fallback| I[Speaker Built-in TTS]
     I -->|Play| H
 
-    A1[GitHub Actions] -.->|示例| A
-    A2[自定义脚本] -.->|示例| A
-    A3[其他服务] -.->|示例| A
+    A1[GitHub Actions] -.->|Example| A
+    A2[Custom Scripts] -.->|Example| A
+    A3[Other Services] -.->|Example| A
 
     style C fill:#e1f5ff
     style D fill:#d4f1d4
