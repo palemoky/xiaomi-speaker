@@ -14,7 +14,7 @@ permissions:
   contents: read
 
 env:
-  DOCKER_IMAGE: ${{ vars.DOCKERHUB_USERNAME }}/xiaomi-speaker
+  DOCKER_IMAGE: ${{ vars.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}
 
 jobs:
   build-and-push:
