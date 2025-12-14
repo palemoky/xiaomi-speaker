@@ -30,13 +30,17 @@ async def lifespan(app: FastAPI):
     settings.ensure_audio_cache_dir()
     logger.info(f"Audio cache directory: {settings.audio_cache_dir}")
 
+    # Start notification queue worker
+    from src.api.webhooks import notification
+
+    notification.start_worker()
+    logger.info("Notification queue worker started")
+
     yield
 
     # Shutdown
     logger.info("Shutting down application...")
     # Clean up notification service resources
-    from src.api.webhooks import notification
-
     await notification.cleanup()
     logger.info("Cleanup complete")
 

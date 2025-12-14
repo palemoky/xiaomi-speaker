@@ -1,5 +1,6 @@
 """Notification processing and orchestration service."""
 
+import asyncio
 import logging
 from pathlib import Path
 
@@ -18,10 +19,65 @@ class NotificationService:
         """Initialize the notification service."""
         self.tts = TTSService()
         self.speaker = SpeakerService()
+        self.queue: asyncio.Queue[str] = asyncio.Queue()
+        self.worker_task: asyncio.Task | None = None
+        self._shutdown = False
+
+    def start_worker(self) -> None:
+        """Start the background worker to process notification queue."""
+        if self.worker_task is None or self.worker_task.done():
+            self.worker_task = asyncio.create_task(self._queue_worker())
+            logger.info("Notification queue worker started")
+
+    async def _queue_worker(self) -> None:
+        """Background worker that processes notifications from the queue."""
+        logger.info("Queue worker running")
+        while not self._shutdown:
+            try:
+                # Wait for a message with timeout to allow checking shutdown flag
+                try:
+                    message = await asyncio.wait_for(self.queue.get(), timeout=1.0)
+                except TimeoutError:
+                    continue
+
+                # Process the message
+                try:
+                    await self._send_message(message)
+                except Exception as e:
+                    logger.error(f"Error processing notification: {e}", exc_info=True)
+                finally:
+                    self.queue.task_done()
+
+                # Wait for configured interval before processing next message
+                if settings.notification_interval > 0:
+                    await asyncio.sleep(settings.notification_interval)
+
+            except Exception as e:
+                logger.error(f"Queue worker error: {e}", exc_info=True)
+                await asyncio.sleep(1.0)  # Prevent tight loop on errors
+
+        logger.info("Queue worker stopped")
 
     async def cleanup(self) -> None:
         """Clean up resources."""
+        logger.info("Cleaning up notification service...")
+        self._shutdown = True
+
+        # Wait for queue to be processed
+        if not self.queue.empty():
+            logger.info(f"Waiting for {self.queue.qsize()} queued notifications to complete...")
+            await self.queue.join()
+
+        # Cancel worker task
+        if self.worker_task and not self.worker_task.done():
+            self.worker_task.cancel()
+            try:
+                await self.worker_task
+            except asyncio.CancelledError:
+                pass
+
         await self.speaker.close()
+        logger.info("Notification service cleanup complete")
 
     def _format_notification(
         self,
@@ -88,7 +144,7 @@ class NotificationService:
             url: Optional workflow URL
 
         Returns:
-            True if notification was sent successfully
+            True if notification was queued successfully
         """
         try:
             # Select template based on conclusion
@@ -111,18 +167,14 @@ class NotificationService:
                 url=url,
             )
 
-            logger.info(f"Sending notification: {message}")
-            success = await self._send_message(message)
+            logger.info(f"Queueing notification: {message}")
+            await self.queue.put(message)
+            logger.info(f"Notification queued (queue size: {self.queue.qsize()})")
 
-            if success:
-                logger.info("Notification sent successfully")
-            else:
-                logger.error("Failed to send notification")
-
-            return success
+            return True
 
         except Exception as e:
-            logger.error(f"Error sending notification: {e}")
+            logger.error(f"Error queueing notification: {e}")
             return False
 
     def _get_audio_url(self, audio_file: Path) -> str:
@@ -163,19 +215,15 @@ class NotificationService:
             message: Custom message to send
 
         Returns:
-            True if notification was sent successfully
+            True if notification was queued successfully
         """
         try:
-            logger.info(f"Sending custom notification: {message}")
-            success = await self._send_message(message)
+            logger.info(f"Queueing custom notification: {message}")
+            await self.queue.put(message)
+            logger.info(f"Custom notification queued (queue size: {self.queue.qsize()})")
 
-            if success:
-                logger.info("Custom notification sent successfully")
-            else:
-                logger.error("Failed to send custom notification")
-
-            return success
+            return True
 
         except Exception as e:
-            logger.error(f"Error sending custom notification: {e}")
+            logger.error(f"Error queueing custom notification: {e}")
             return False

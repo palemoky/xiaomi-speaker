@@ -57,6 +57,12 @@ class Settings(BaseSettings):
         description="Template for success notifications",
     )
 
+    # Notification Queue Configuration
+    notification_interval: float = Field(
+        default=3.0,
+        description="Interval in seconds between consecutive notifications",
+    )
+
     # Audio Cache Directory
     audio_cache_dir: Path = Field(
         default=Path("audio_cache"), description="Directory for cached audio files"
