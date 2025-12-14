@@ -14,7 +14,6 @@
 [![Release](https://github.com/palemoky/xiaomi-speaker/actions/workflows/release.yml/badge.svg)](https://github.com/palemoky/xiaomi-speaker/actions/workflows/release.yml)
 [![Python 3.13](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org/downloads/)
 
-
 ## ✨ 功能特性
 
 - 🔊 **语音播报** - 通过小米音箱播报任何自定义消息
@@ -33,7 +32,7 @@
 ```mermaid
 graph TD
     A[External Trigger] -->|Webhook/API| B[Cloudflare Tunnel]
-    B -->|HTTPS| C[FastAPI Server :9527]
+    B -->|HTTPS| C[FastAPI Server :2010]
     C -->|Generate| D[Piper TTS]
     D -->|Save| E[Audio Cache]
     C -->|Control| F[MiService]
@@ -116,14 +115,15 @@ docker-compose up -d
 ```
 
 服务将在以下端口启动：
-- Webhook 服务器: `http://localhost:9527`
+
+- Webhook 服务器: `http://localhost:2010`
 - 静态文件服务器: `http://localhost:1810`
 
 ### 4. 测试通知
 
 ```bash
 # 需要提供 API Key（如果配置了 API_SECRET）
-curl -X POST http://localhost:9527/webhook/custom \
+curl -X POST http://localhost:2010/webhook/custom \
   -H "Content-Type: application/json" \
   -H "X-API-Key: your_api_secret" \
   -d '{"message": "测试通知"}'
@@ -142,7 +142,7 @@ curl -X POST http://localhost:9527/webhook/custom \
 # 备份完成后通知
 ./backup.sh
 if [ $? -eq 0 ]; then
-  curl -X POST http://localhost:9527/webhook/custom \
+  curl -X POST http://localhost:2010/webhook/custom \
     -H "Content-Type: application/json" \
     -H "X-API-Key: $API_SECRET" \
     -d '{"message": "备份任务完成"}'
@@ -156,7 +156,7 @@ import requests
 
 def send_alert(message):
     requests.post(
-        "http://localhost:9527/webhook/custom",
+        "http://localhost:2010/webhook/custom",
         headers={"X-API-Key": "your_api_secret"},
         json={"message": message}
     )
@@ -170,7 +170,7 @@ if cpu_usage > 90:
 
 ```bash
 # 添加到 crontab
-0 9 * * * curl -X POST http://localhost:9527/webhook/custom -H "Content-Type: application/json" -H "X-API-Key: your_secret" -d '{"message": "早上好,开始新的一天"}'
+0 9 * * * curl -X POST http://localhost:2010/webhook/custom -H "Content-Type: application/json" -H "X-API-Key: your_secret" -d '{"message": "早上好,开始新的一天"}'
 ```
 
 ### 场景四:GitHub Actions 集成
@@ -205,7 +205,7 @@ docker-compose up -d
 docker run -d \
   --name xiaomi-speaker \
   --env-file .env \
-  -p 9527:9527 \
+  -p 2010:2010 \
   -p 1810:1810 \
   -v $(pwd)/audio_cache:/app/audio_cache \
   --restart unless-stopped \
@@ -219,6 +219,7 @@ docker run -d \
 ### 方式一：使用 Docker Compose（推荐）
 
 1. **获取 Tunnel Token**
+
    - 登录 [Cloudflare Zero Trust Dashboard](https://one.dash.cloudflare.com/)
    - 进入 **Networks** > **Tunnels** > **Create a tunnel**
    - 选择 **Cloudflared**
@@ -228,12 +229,14 @@ docker run -d \
    - 复制这个长字符串 Token
 
 2. **配置 Public Hostname**
+
    - 在 Tunnel 配置页面的 "Public Hostnames" 标签
    - 添加一个 Hostname（例如 `speaker.yourdomain.com`）
-   - **Service** 选择 `HTTP`，URL 填 `xiaomi-speaker:9527` (注意这里用容器名)
+   - **Service** 选择 `HTTP`，URL 填 `xiaomi-speaker:2010` (注意这里用容器名)
 
 3. **更新 .env 文件**
    在 `.env` 文件中添加 Token：
+
    ```bash
    TUNNEL_TOKEN=eyJhIjoi...
    ```
@@ -292,30 +295,30 @@ jobs:
 
 ### 必填配置
 
-| 变量 | 说明 | 示例 |
-|------|------|------|
-| `MI_USER` | 小米账号 | `user@example.com` |
-| `MI_PASS` | 小米密码 | `your_password` |
-| `MI_DID` | 设备 ID（UUID/数字DID/名称） | `uuid-1234` 或 `12345678` 或 `小米音箱` |
-| `STATIC_SERVER_HOST` | 音箱可访问的 IP 地址 | `192.168.1.100` |
-| `STATIC_SERVER_PORT` | 静态文件服务器端口 | `1810` |
+| 变量                 | 说明                          | 示例                                    |
+| -------------------- | ----------------------------- | --------------------------------------- |
+| `MI_USER`            | 小米账号                      | `user@example.com`                      |
+| `MI_PASS`            | 小米密码                      | `your_password`                         |
+| `MI_DID`             | 设备 ID（UUID/数字 DID/名称） | `uuid-1234` 或 `12345678` 或 `小米音箱` |
+| `STATIC_SERVER_HOST` | 音箱可访问的 IP 地址          | `192.168.1.100`                         |
+| `STATIC_SERVER_PORT` | 静态文件服务器端口            | `1810`                                  |
 
 ### TTS 配置
 
-| 变量 | 说明 | 默认值 |
-|------|------|--------|
-| `PIPER_VOICE_ZH` | Piper 中文语音模型（可选） | 留空使用音箱内置 TTS |
-| `PIPER_VOICE_EN` | Piper 英文语音模型 | `en_US-lessac-medium` |
-| `PIPER_SPEAKER` | 说话人 ID（多说话人模型） | `0` |
-| `PIPER_LENGTH_SCALE` | 语速（1.0=正常） | `1.0` |
-| `AUDIO_CACHE_DIR` | 音频缓存目录 | `audio_cache` |
+| 变量                 | 说明                       | 默认值                |
+| -------------------- | -------------------------- | --------------------- |
+| `PIPER_VOICE_ZH`     | Piper 中文语音模型（可选） | 留空使用音箱内置 TTS  |
+| `PIPER_VOICE_EN`     | Piper 英文语音模型         | `en_US-lessac-medium` |
+| `PIPER_SPEAKER`      | 说话人 ID（多说话人模型）  | `0`                   |
+| `PIPER_LENGTH_SCALE` | 语速（1.0=正常）           | `1.0`                 |
+| `AUDIO_CACHE_DIR`    | 音频缓存目录               | `audio_cache`         |
 
 ### 安全配置（可选）
 
-| 变量 | 说明 | 生成方法 |
-|------|------|----------|
-| `API_SECRET` | 自定义 webhook API 密钥 | `python -c "import secrets; print(secrets.token_urlsafe(32))"` |
-| `GITHUB_WEBHOOK_SECRET` | GitHub webhook 签名密钥 | 在 GitHub webhook 设置中配置 |
+| 变量                    | 说明                    | 生成方法                                                       |
+| ----------------------- | ----------------------- | -------------------------------------------------------------- |
+| `API_SECRET`            | 自定义 webhook API 密钥 | `python -c "import secrets; print(secrets.token_urlsafe(32))"` |
+| `GITHUB_WEBHOOK_SECRET` | GitHub webhook 签名密钥 | 在 GitHub webhook 设置中配置                                   |
 
 ### 可用的 Piper 中文语音
 
@@ -331,8 +334,9 @@ GET /health
 ```
 
 **响应**:
+
 ```json
-{"status": "healthy"}
+{ "status": "healthy" }
 ```
 
 ### GitHub Webhook
@@ -357,6 +361,7 @@ X-Hub-Signature-256: sha256=... (可选，需配置 GITHUB_WEBHOOK_SECRET)
 ```
 
 **支持的事件**:
+
 - `workflow_run` - 工作流运行完成
 - `workflow_job` - 工作流任务完成
 - `check_run` - 检查运行完成
@@ -374,6 +379,7 @@ X-API-Key: your_api_secret (需配置 API_SECRET)
 ```
 
 **响应**:
+
 ```json
 {
   "status": "processed",
@@ -405,7 +411,7 @@ X-API-Key: your_api_secret (需配置 API_SECRET)
    ```
 2. 测试本地端点：
    ```bash
-   curl http://localhost:9527/health
+   curl http://localhost:2010/health
    ```
 3. 查看服务器日志
 
@@ -429,22 +435,26 @@ X-API-Key: your_api_secret (需配置 API_SECRET)
 ### 本地开发环境
 
 1. **克隆仓库**
+
    ```bash
    git clone https://github.com/palemoky/xiaomi-speaker.git
    cd xiaomi-speaker
    ```
 
 2. **安装 UV**
+
    ```bash
    curl -LsSf https://astral.sh/uv/install.sh | sh
    ```
 
 3. **安装依赖**
+
    ```bash
    uv sync --all-extras
    ```
 
 4. **配置环境变量**
+
    ```bash
    cp .env.example .env
    # 编辑 .env 文件
@@ -498,6 +508,7 @@ git commit -m "fix(speaker): resolve connection timeout issue"
 ```
 
 **可用的 scopes**:
+
 - `api` - API endpoints
 - `speaker` - Speaker service
 - `tts` - TTS service
@@ -517,6 +528,7 @@ git commit -m "fix(speaker): resolve connection timeout issue"
 #### 测试工作流 (`.github/workflows/test.yml`)
 
 每次 push 和 PR 都会自动运行：
+
 - ✅ Ruff 代码检查
 - ✅ Mypy 类型检查
 - ✅ Pytest 单元测试（81 个测试）
@@ -525,6 +537,7 @@ git commit -m "fix(speaker): resolve connection timeout issue"
 #### Docker 构建工作流 (`.github/workflows/docker-build.yml`)
 
 自动构建多架构 Docker 镜像：
+
 - **触发条件**: Push 到 `main` 分支或创建 tag
 - **支持架构**: `linux/amd64`, `linux/arm64`
 - **镜像标签**:
@@ -536,10 +549,10 @@ git commit -m "fix(speaker): resolve connection timeout issue"
 
 在仓库 Settings → Secrets and variables → Actions 中添加：
 
-| Secret | 说明 | 必需 |
-|--------|------|------|
-| `DOCKERHUB_USERNAME` | Docker Hub 用户名 | ✅ |
-| `DOCKERHUB_TOKEN` | Docker Hub 访问令牌 | ✅ |
+| Secret               | 说明                | 必需 |
+| -------------------- | ------------------- | ---- |
+| `DOCKERHUB_USERNAME` | Docker Hub 用户名   | ✅   |
+| `DOCKERHUB_TOKEN`    | Docker Hub 访问令牌 | ✅   |
 
 ### 发布新版本
 
@@ -555,15 +568,15 @@ git push --follow-tags
 
 当前测试覆盖率：**66%**
 
-| 模块 | 覆盖率 | 状态 |
-|------|--------|------|
-| `src/api/webhooks.py` | 100% | ✅ |
-| `src/config.py` | 100% | ✅ |
-| `src/utils/language.py` | 100% | ✅ |
-| `src/services/speaker.py` | 97% | ✅ |
-| `src/services/notification.py` | 95% | ✅ |
-| `src/server.py` | 67% | ⚠️ |
-| `src/services/tts.py` | 21% | ⚠️ |
+| 模块                           | 覆盖率 | 状态 |
+| ------------------------------ | ------ | ---- |
+| `src/api/webhooks.py`          | 100%   | ✅   |
+| `src/config.py`                | 100%   | ✅   |
+| `src/utils/language.py`        | 100%   | ✅   |
+| `src/services/speaker.py`      | 97%    | ✅   |
+| `src/services/notification.py` | 95%    | ✅   |
+| `src/server.py`                | 67%    | ⚠️   |
+| `src/services/tts.py`          | 21%    | ⚠️   |
 
 ## 🤝 贡献指南
 
@@ -576,6 +589,7 @@ git push --follow-tags
 5. 开启 Pull Request
 
 **贡献前请确保**:
+
 - ✅ 所有测试通过
 - ✅ 代码通过 Ruff 和 Mypy 检查
 - ✅ 添加了必要的测试

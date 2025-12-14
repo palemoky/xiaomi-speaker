@@ -26,7 +26,7 @@
    - **Subdomain**: 例如 `speaker`
    - **Domain**: 选择你的域名
    - **Service**: 选择 `HTTP`
-   - **URL**: 填写 `xiaomi-speaker:9527`（注意使用容器名）
+   - **URL**: 填写 `xiaomi-speaker:2010`（注意使用容器名）
 4. 保存
 
 ### 3. 更新 .env 文件
@@ -92,7 +92,7 @@ credentials-file: /home/YOUR_USER/.cloudflared/TUNNEL_ID.json
 
 ingress:
   - hostname: speaker.yourdomain.com
-    service: http://localhost:9527
+    service: http://localhost:2010
   - service: http_status:404
 ```
 
@@ -132,12 +132,13 @@ cloudflared tunnel info xiaomi-speaker
 ### 2. 测试本地服务
 
 ```bash
-curl http://localhost:9527/health
+curl http://localhost:2010/health
 ```
 
 应该返回：
+
 ```json
-{"status": "healthy"}
+{ "status": "healthy" }
 ```
 
 ### 3. 测试公网访问
@@ -170,6 +171,7 @@ API_SECRET=your_strong_random_api_key
 ```
 
 生成强密钥：
+
 ```bash
 python -c "import secrets; print(secrets.token_urlsafe(32))"
 ```
@@ -202,6 +204,7 @@ GITHUB_WEBHOOK_SECRET=your_webhook_secret
 ### Tunnel 无法连接
 
 1. **检查 token 是否正确**
+
    ```bash
    # Docker Compose
    docker-compose logs cloudflared
@@ -211,6 +214,7 @@ GITHUB_WEBHOOK_SECRET=your_webhook_secret
    ```
 
 2. **验证网络连接**
+
    ```bash
    ping cloudflare.com
    ```
@@ -221,14 +225,17 @@ GITHUB_WEBHOOK_SECRET=your_webhook_secret
 ### 本地服务可访问，公网不可访问
 
 1. **检查 DNS 配置**
+
    ```bash
    nslookup speaker.yourdomain.com
    ```
 
 2. **验证 ingress 配置**
+
    - 确保 service URL 正确（Docker 使用容器名，本地使用 localhost）
 
 3. **查看 Tunnel 日志**
+
    ```bash
    # Docker
    docker-compose logs -f cloudflared
@@ -240,11 +247,13 @@ GITHUB_WEBHOOK_SECRET=your_webhook_secret
 ### 502 Bad Gateway
 
 1. **确认本地服务运行**
+
    ```bash
-   curl http://localhost:9527/health
+   curl http://localhost:2010/health
    ```
 
 2. **检查端口配置**
+
    - Docker Compose: 使用容器名和内部端口
    - 手动安装: 使用 localhost 和暴露的端口
 
@@ -260,7 +269,7 @@ GITHUB_WEBHOOK_SECRET=your_webhook_secret
 如果你只是想快速测试，可以使用临时 URL：
 
 ```bash
-cloudflared tunnel --url http://localhost:9527
+cloudflared tunnel --url http://localhost:2010
 ```
 
 这会生成一个临时的 `*.trycloudflare.com` URL。
@@ -277,7 +286,7 @@ credentials-file: /home/YOUR_USER/.cloudflared/TUNNEL_ID.json
 
 ingress:
   - hostname: speaker.yourdomain.com
-    service: http://localhost:9527
+    service: http://localhost:2010
   - hostname: other-service.yourdomain.com
     service: http://localhost:8080
   - service: http_status:404

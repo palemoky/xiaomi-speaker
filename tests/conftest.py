@@ -15,7 +15,7 @@ def mock_settings():
         mi_pass="test_pass",
         mi_did="test_device_id",
         server_host="0.0.0.0",
-        server_port=9527,
+        server_port=2010,
         static_server_host="192.168.1.100",
         static_server_port=1810,
         piper_voice_zh=None,  # Use speaker's built-in TTS

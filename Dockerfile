@@ -63,9 +63,9 @@ COPY src ./src
 RUN mkdir -p /app/audio_cache /root/.local/share/piper-voices
 
 # 6. 端口与健康检查
-EXPOSE 1810 9527
+EXPOSE 1810 2010
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-  CMD curl -f http://127.0.0.1:9527/health || exit 1
+  CMD curl -f http://127.0.0.1:2010/health || exit 1
 
 CMD ["python", "-m", "src.main"]
