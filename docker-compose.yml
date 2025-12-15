@@ -1,18 +1,27 @@
-version: '3.8'
-
-# Xiaomi Speaker
 services:
+  # Xiaomi Speaker
   speaker:
     image: palemoky/xiaomi-speaker:latest
     container_name: speaker
     restart: unless-stopped
     network_mode: host
-    env_file:
-      - .env
+    env_file: .env
     volumes:
-      - ./audio_cache:/app/audio_cache
-      - ./logs:/app/logs
-      - piper-voices:/root/.local/share/piper-voices
+      - type: volume
+        source: speaker-data
+        target: /app/audio_cache
+        volume:
+          subpath: audio_cache
+      - type: volume
+        source: speaker-data
+        target: /app/logs
+        volume:
+          subpath: logs
+      - type: volume
+        source: speaker-data
+        target: /root/.local/share/piper-voices
+        volume:
+          subpath: piper-voices
     logging:
       driver: "json-file"
       options:
@@ -25,13 +34,11 @@ services:
     container_name: cloudflared-tunnel
     restart: unless-stopped
     network_mode: host
-    env_file:
-      - .env
+    env_file: .env
     command: tunnel --no-autoupdate run
     depends_on:
       speaker:
         condition: service_healthy
 
-# 定义命名卷
 volumes:
-  piper-voices:
+  speaker-data:
