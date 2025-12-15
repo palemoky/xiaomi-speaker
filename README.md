@@ -1,8 +1,8 @@
-<h1 align="center">
-    <img src="https://raw.githubusercontent.com/palemoky/xiaomi-speaker/main/docs/logo.png" alt="Logo" width="128" />
+<h3 align="center">
+    <img src="https://raw.githubusercontent.com/palemoky/xiaomi-speaker/main/docs/logo.png" alt="Logo" width="100" />
     <br>
     The Voice of Your Code. <br/>你的代码，掷地有声！
-</h1>
+</h3>
 
 # Xiaomi Speaker 智能语音播报系统
 
