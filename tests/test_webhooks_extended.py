@@ -254,22 +254,17 @@ class TestNotificationServiceErrorHandling:
 
     @pytest.mark.asyncio
     async def test_send_github_notification_exception(self):
-        """Test GitHub notification with exception."""
+        """Test GitHub notification with exception during queuing."""
         from src.services.notification import NotificationService
 
         with (
             patch("src.services.notification.TTSService"),
-            patch("src.services.notification.SpeakerService") as mock_speaker,
+            patch("src.services.notification.SpeakerService"),
         ):
-            # Make speaker.play_tts raise exception
-            mock_speaker_instance = mock_speaker.return_value
-            mock_speaker_instance.play_tts = AsyncMock(side_effect=Exception("Speaker error"))
-
             service = NotificationService()
 
-            with patch("src.services.notification.settings") as mock_settings:
-                mock_settings.piper_voice_zh = None
-
+            # Mock queue.put to raise an exception
+            with patch.object(service.queue, "put", side_effect=Exception("Queue error")):
                 result = await service.send_github_notification(
                     repo="user/repo", workflow="CI", conclusion="success"
                 )
@@ -279,21 +274,17 @@ class TestNotificationServiceErrorHandling:
 
     @pytest.mark.asyncio
     async def test_send_custom_notification_exception(self):
-        """Test custom notification with exception."""
+        """Test custom notification with exception during queuing."""
         from src.services.notification import NotificationService
 
         with (
             patch("src.services.notification.TTSService"),
-            patch("src.services.notification.SpeakerService") as mock_speaker,
+            patch("src.services.notification.SpeakerService"),
         ):
-            mock_speaker_instance = mock_speaker.return_value
-            mock_speaker_instance.play_tts = AsyncMock(side_effect=Exception("Speaker error"))
-
             service = NotificationService()
 
-            with patch("src.services.notification.settings") as mock_settings:
-                mock_settings.piper_voice_zh = None
-
+            # Mock queue.put to raise an exception
+            with patch.object(service.queue, "put", side_effect=Exception("Queue error")):
                 result = await service.send_custom_notification("测试消息")
 
                 assert result is False
