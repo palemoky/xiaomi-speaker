@@ -93,7 +93,7 @@ class TestCustomWebhook:
 
             response = client.post(
                 "/webhook/custom",
-                data="invalid json",
+                content="invalid json",
                 headers={"X-API-Key": "test_secret", "Content-Type": "application/json"},
             )
 
@@ -179,7 +179,7 @@ class TestGitHubWebhook:
         """Test GitHub webhook with invalid JSON."""
         response = client.post(
             "/webhook/github",
-            data="invalid json",
+            content="invalid json",
             headers={"X-GitHub-Event": "workflow_run", "Content-Type": "application/json"},
         )
 

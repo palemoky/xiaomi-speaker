@@ -63,9 +63,12 @@ class Settings(BaseSettings):
         description="Interval in seconds between consecutive notifications",
     )
 
-    # Audio Cache Directory
+    # Audio Cache Configuration
     audio_cache_dir: Path = Field(
         default=Path("audio_cache"), description="Directory for cached audio files"
+    )
+    audio_cache_max_size_mb: int = Field(
+        default=100, description="Maximum cache size in MB (0 = unlimited)"
     )
 
     # Webhook Security (optional)

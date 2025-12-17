@@ -23,6 +23,7 @@ class TTSService:
         self.speaker = settings.piper_speaker
         self.length_scale = settings.piper_length_scale
         self.cache_dir = settings.audio_cache_dir
+        self.max_cache_size_bytes = settings.audio_cache_max_size_mb * 1024 * 1024
         settings.ensure_audio_cache_dir()
 
         # Model directory (default Piper location or custom)
@@ -32,6 +33,65 @@ class TTSService:
         # Lazy load voices (will be loaded on first use)
         self.voice_zh: PiperVoice | None = None
         self.voice_en: PiperVoice | None = None
+
+    def _get_cache_size(self) -> int:
+        """Get the total size of cached audio files in bytes.
+
+        Returns:
+            Total size of all .wav files in cache directory
+        """
+        total_size = 0
+        for audio_file in self.cache_dir.glob("*.wav"):
+            try:
+                total_size += audio_file.stat().st_size
+            except OSError:
+                pass  # File may have been deleted
+        return total_size
+
+    def _enforce_cache_limit(self) -> int:
+        """Enforce cache size limit using LRU eviction.
+
+        Deletes oldest files (by modification time) until cache size
+        is below the configured limit.
+
+        Returns:
+            Number of files deleted
+        """
+        if self.max_cache_size_bytes == 0:
+            return 0  # Unlimited cache
+
+        deleted_count = 0
+        current_size = self._get_cache_size()
+
+        if current_size <= self.max_cache_size_bytes:
+            return 0  # Within limit
+
+        # Get all cache files sorted by modification time (oldest first)
+        cache_files = sorted(
+            self.cache_dir.glob("*.wav"),
+            key=lambda f: f.stat().st_mtime,
+        )
+
+        for audio_file in cache_files:
+            if current_size <= self.max_cache_size_bytes:
+                break
+
+            try:
+                file_size = audio_file.stat().st_size
+                audio_file.unlink()
+                current_size -= file_size
+                deleted_count += 1
+                logger.info(f"LRU eviction: deleted {audio_file.name} ({file_size} bytes)")
+            except OSError as e:
+                logger.warning(f"Failed to delete {audio_file}: {e}")
+
+        if deleted_count > 0:
+            logger.info(
+                f"Cache cleanup: deleted {deleted_count} files, "
+                f"new size: {current_size / 1024 / 1024:.1f} MB"
+            )
+
+        return deleted_count
 
     def _find_model_file(self, voice_name: str) -> Path | None:
         """Find the .onnx model file for a voice.
@@ -224,6 +284,8 @@ class TTSService:
                 logger.info(
                     f"Generated audio saved to: {cache_file} ({cache_file.stat().st_size} bytes)"
                 )
+                # Enforce cache size limit (LRU eviction)
+                self._enforce_cache_limit()
                 return cache_file
             else:
                 raise Exception("Generated file is empty or does not exist")
