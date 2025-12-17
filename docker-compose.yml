@@ -7,21 +7,9 @@ services:
     network_mode: host
     env_file: .env
     volumes:
-      - type: volume
-        source: speaker-data
-        target: /app/audio_cache
-        volume:
-          subpath: audio_cache
-      - type: volume
-        source: speaker-data
-        target: /app/logs
-        volume:
-          subpath: logs
-      - type: volume
-        source: speaker-data
-        target: /root/.local/share/piper-voices
-        volume:
-          subpath: piper-voices
+      - ./data/audio_cache:/app/audio_cache
+      - ./data/logs:/app/logs
+      - ./data/piper-voices:/root/.local/share/piper-voices
     logging:
       driver: "json-file"
       options:
@@ -39,6 +27,3 @@ services:
     depends_on:
       speaker:
         condition: service_healthy
-
-volumes:
-  speaker-data:

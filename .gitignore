@@ -1,8 +1,8 @@
 # Environment variables
 .env
 
-# Audio cache
-audio_cache/
+# Docker bind mount data
+data/
 
 # Python
 __pycache__/
