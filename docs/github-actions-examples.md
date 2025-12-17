@@ -11,6 +11,7 @@
 1. 在 GitHub 仓库中进入 **Settings → Webhooks → Add webhook**
 
 2. 配置 webhook：
+
    - **Payload URL**: `https://your-tunnel-url.com/webhook/github`
    - **Content type**: `application/json`
    - **Secret**: （可选）与 `.env` 中的 `GITHUB_WEBHOOK_SECRET` 一致
@@ -36,7 +37,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Build
         run: npm run build
@@ -75,7 +76,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Deploy
         run: ./deploy.sh
@@ -116,12 +117,12 @@ jobs:
 
 在仓库 **Settings → Secrets and variables → Actions** 中添加：
 
-| Secret | 说明 | 必需 |
-|--------|------|------|
-| `WEBHOOK_URL` | Webhook 基础 URL | ✅ |
-| `API_SECRET` | API 密钥（如果配置了 API_SECRET） | ⚠️ 推荐 |
-| `CF_CLIENT_ID` | Cloudflare Access Client ID | ⚪ 可选 |
-| `CF_CLIENT_SECRET` | Cloudflare Access Client Secret | ⚪ 可选 |
+| Secret             | 说明                              | 必需    |
+| ------------------ | --------------------------------- | ------- |
+| `WEBHOOK_URL`      | Webhook 基础 URL                  | ✅      |
+| `API_SECRET`       | API 密钥（如果配置了 API_SECRET） | ⚠️ 推荐 |
+| `CF_CLIENT_ID`     | Cloudflare Access Client ID       | ⚪ 可选 |
+| `CF_CLIENT_SECRET` | Cloudflare Access Client Secret   | ⚪ 可选 |
 
 ## Webhook 负载格式
 
@@ -228,6 +229,7 @@ jobs:
 ### 通知未收到
 
 1. **检查 webhook 配置**
+
    ```bash
    curl -X POST https://your-tunnel-url.com/webhook/custom \
      -H "Content-Type: application/json" \
@@ -236,6 +238,7 @@ jobs:
    ```
 
 2. **查看 GitHub Actions 日志**
+
    - 检查 curl 命令是否成功执行
    - 查看返回的 HTTP 状态码
 
