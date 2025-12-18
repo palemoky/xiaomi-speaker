@@ -1,7 +1,7 @@
 <div align="center">
     <img src="https://raw.githubusercontent.com/palemoky/xiaomi-speaker/main/docs/logo.png" alt="Logo" width="100" />
 
-   The Voice of Your Code. <br/>你的代码，掷地有声！
+The Voice of Your Code. <br/>你的代码，掷地有声！
 
 # Xiaomi Speaker 智能语音播报系统
 
@@ -94,7 +94,7 @@ docker-compose up -d
 ```bash
 curl -X POST http://localhost:2010/webhook/custom \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: your_api_secret" \
+  -H "Speaker-API-Secret: your_api_secret" \
   -H "CF-Access-Client-Id: your_cf_client_id" \
   -H "CF-Access-Client-Secret: your_cf_client_secret" \
   -d '{"message": "测试通知"}'
@@ -115,7 +115,7 @@ curl -X POST http://localhost:2010/webhook/custom \
 if [ $? -eq 0 ]; then
   curl -X POST http://localhost:2010/webhook/custom \
     -H "Content-Type: application/json" \
-    -H "X-API-Key: your_api_secret" \
+    -H "Speaker-API-Secret: your_api_secret" \
     -H "CF-Access-Client-Id: your_cf_client_id" \
     -H "CF-Access-Client-Secret: your_cf_client_secret" \
     -d '{"message": "备份任务完成"}'
@@ -130,7 +130,7 @@ import requests
 def send_alert(message):
     requests.post(
         "http://localhost:2010/webhook/custom",
-        headers={"X-API-Key": "your_api_secret"},
+        headers={"Speaker-API-Secret": "your_api_secret"},
         params={"cf_client_id": "your_cf_client_id", "cf_client_secret": "your_cf_client_secret"},
         json={"message": message}
     )
@@ -144,7 +144,7 @@ if cpu_usage > 90:
 
 ```bash
 # 添加到 crontab
-0 9 * * * curl -X POST http://localhost:2010/webhook/custom -H "Content-Type: application/json" -H "X-API-Key: your_api_secret" -H "CF-Access-Client-Id: your_cf_client_id" -H "CF-Access-Client-Secret: your_cf_client_secret" -d '{"message": "早上好,开始新的一天"}'
+0 9 * * * curl -X POST http://localhost:2010/webhook/custom -H "Content-Type: application/json" -H "Speaker-API-Secret: your_api_secret" -H "CF-Access-Client-Id: your_cf_client_id" -H "CF-Access-Client-Secret: your_cf_client_secret" -d '{"message": "早上好,开始新的一天"}'
 ```
 
 ### 场景四:GitHub Actions 集成

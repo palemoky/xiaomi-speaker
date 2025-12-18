@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### ✨ Features
 
 #### Core Functionality
+
 - **GitHub Webhook Integration** - Support for `workflow_run`, `workflow_job`, and `check_run` events
 - **Piper TTS Integration** - Local offline text-to-speech with high-quality neural voices
 - **Smart TTS Fallback** - Automatically uses speaker's built-in TTS for Chinese when Piper voice not configured
@@ -17,11 +18,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Multi-format Device ID** - Support UUID, numeric DID, or device name for speaker identification
 
 #### Security
-- **API Key Authentication** - Protect custom webhook endpoint with `X-API-Key` header
+
+- **API Key Authentication** - Protect custom webhook endpoint with `Speaker-API-Secret` header
 - **GitHub Webhook Signature Verification** - Optional HMAC-SHA256 signature validation
 - **Secure Comparison** - Using `secrets.compare_digest()` to prevent timing attacks
 
 #### Infrastructure
+
 - **Docker Multi-arch Support** - Automated builds for `linux/amd64` and `linux/arm64`
 - **Static File Server** - Serve generated audio files for speaker playback
 - **Audio Caching** - Automatic caching of generated TTS audio files
@@ -78,6 +81,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 📦 Dependencies
 
 **Core**:
+
 - FastAPI >= 0.123.0
 - Uvicorn >= 0.38.0
 - Piper TTS >= 1.2.0
@@ -86,6 +90,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Python 3.13
 
 **Development**:
+
 - Ruff - Linting and formatting
 - Mypy - Type checking
 - Pytest - Testing framework
