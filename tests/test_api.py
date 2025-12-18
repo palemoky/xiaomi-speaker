@@ -34,7 +34,7 @@ class TestCustomWebhook:
             response = client.post(
                 "/webhook/custom",
                 json={"message": "Test notification"},
-                headers={"X-API-Key": "test_secret"},
+                headers={"Speaker-API-Secret": "test_secret"},
             )
 
             assert response.status_code == 200
@@ -51,7 +51,7 @@ class TestCustomWebhook:
             response = client.post("/webhook/custom", json={"message": "Test notification"})
 
             assert response.status_code == 401
-            assert "Missing X-API-Key header" in response.json()["detail"]
+            assert "Missing Speaker-API-Secret header" in response.json()["detail"]
 
     def test_custom_notification_invalid_api_key(self, client):
         """Test custom notification with invalid API key."""
@@ -61,7 +61,7 @@ class TestCustomWebhook:
             response = client.post(
                 "/webhook/custom",
                 json={"message": "Test notification"},
-                headers={"X-API-Key": "wrong_key"},
+                headers={"Speaker-API-Secret": "wrong_key"},
             )
 
             assert response.status_code == 403
@@ -81,7 +81,9 @@ class TestCustomWebhook:
         with patch("src.api.webhooks.settings") as mock_settings:
             mock_settings.api_secret = "test_secret"
 
-            response = client.post("/webhook/custom", json={}, headers={"X-API-Key": "test_secret"})
+            response = client.post(
+                "/webhook/custom", json={}, headers={"Speaker-API-Secret": "test_secret"}
+            )
 
             assert response.status_code == 400
             assert "Missing 'message' field" in response.json()["detail"]
@@ -94,7 +96,7 @@ class TestCustomWebhook:
             response = client.post(
                 "/webhook/custom",
                 content="invalid json",
-                headers={"X-API-Key": "test_secret", "Content-Type": "application/json"},
+                headers={"Speaker-API-Secret": "test_secret", "Content-Type": "application/json"},
             )
 
             assert response.status_code == 400
@@ -197,7 +199,7 @@ class TestAPIKeyVerification:
         with patch("src.api.webhooks.settings") as mock_settings:
             mock_settings.api_secret = "test_secret"
 
-            result = await verify_api_key(x_api_key="test_secret")
+            result = await verify_api_key(api_secret="test_secret")
             assert result == "test_secret"
 
     @pytest.mark.asyncio
@@ -211,7 +213,7 @@ class TestAPIKeyVerification:
             mock_settings.api_secret = "test_secret"
 
             with pytest.raises(HTTPException) as exc_info:
-                await verify_api_key(x_api_key="wrong_key")
+                await verify_api_key(api_secret="wrong_key")
 
             assert exc_info.value.status_code == 403
 
@@ -226,7 +228,7 @@ class TestAPIKeyVerification:
             mock_settings.api_secret = "test_secret"
 
             with pytest.raises(HTTPException) as exc_info:
-                await verify_api_key(x_api_key=None)
+                await verify_api_key(api_secret=None)
 
             assert exc_info.value.status_code == 401
 
@@ -238,5 +240,5 @@ class TestAPIKeyVerification:
         with patch("src.api.webhooks.settings") as mock_settings:
             mock_settings.api_secret = None
 
-            result = await verify_api_key(x_api_key=None)
+            result = await verify_api_key(api_secret=None)
             assert result == "not_configured"

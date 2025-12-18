@@ -54,11 +54,11 @@ def verify_github_signature(
     return hmac.compare_digest(computed_signature, expected_signature)
 
 
-async def verify_api_key(x_api_key: str | None = Header(None)) -> str:
+async def verify_api_key(api_secret: str | None = Header(None, alias="Speaker-API-Secret")) -> str:
     """Verify API key from request header.
 
     Args:
-        x_api_key: API key from X-API-Key header
+        api_secret: API key from Speaker-API-Secret header
 
     Returns:
         The verified API key
@@ -71,18 +71,18 @@ async def verify_api_key(x_api_key: str | None = Header(None)) -> str:
         logger.warning("API_SECRET not configured, skipping authentication")
         return "not_configured"
 
-    if x_api_key is None:
+    if api_secret is None:
         logger.warning("Missing API key in request")
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing X-API-Key header"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing Speaker-API-Secret header"
         )
 
     # Use secrets.compare_digest for secure string comparison
-    if not secrets.compare_digest(x_api_key, settings.api_secret):
+    if not secrets.compare_digest(api_secret, settings.api_secret):
         logger.warning("Invalid API key provided")
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid API key")
 
-    return x_api_key
+    return api_secret
 
 
 @router.post("/github")
