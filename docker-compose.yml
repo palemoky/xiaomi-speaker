@@ -6,10 +6,12 @@ services:
     restart: unless-stopped
     network_mode: host
     env_file: .env
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
     volumes:
-      - ./data/audio_cache:/app/audio_cache
       - ./data/logs:/app/logs
-      - ./data/piper-voices:/root/.local/share/piper-voices
+      - speaker_data:/app/audio_cache
+      - speaker_data:/home/nonroot/.local/share/piper-voices
     logging:
       driver: "json-file"
       options:
@@ -24,6 +26,11 @@ services:
     network_mode: host
     env_file: .env
     command: tunnel --no-autoupdate run
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
     depends_on:
       speaker:
         condition: service_healthy
+
+volumes:
+  speaker_data:
