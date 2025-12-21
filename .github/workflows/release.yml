@@ -12,7 +12,6 @@ concurrency:
 
 permissions:
   contents: read
-  packages: write # For SBOM and provenance attestations
 
 env:
   DOCKER_IMAGE: ${{ vars.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}
@@ -51,7 +50,6 @@ jobs:
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' && !contains(github.ref, 'alpha') && !contains(github.ref, 'beta') && !contains(github.ref, 'rc') }}
 
       - name: Build and push
-        id: build
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -60,30 +58,8 @@ jobs:
           push: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/') }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          # Enhanced caching with registry fallback
-          cache-from: |
-            type=gha
-            type=registry,ref=${{ env.DOCKER_IMAGE }}:buildcache
+          cache-from: type=gha
           cache-to: type=gha,mode=max
-          # Supply chain security for DHI distroless
-          sbom: true
-          provenance: true
-
-      - name: Report image size
-        if: github.event_name != 'pull_request'
-        run: |
-          echo "### 📦 Image Size Report" >> $GITHUB_STEP_SUMMARY
-          docker buildx imagetools inspect ${{ env.DOCKER_IMAGE }}:${{ steps.meta.outputs.version }} --format "{{json .}}" | \
-            jq -r '.manifests[] | "- **\(.platform.os)/\(.platform.architecture)**: \((.size / 1024 / 1024 | floor))MB"' >> $GITHUB_STEP_SUMMARY
-
-      - name: Scan image with Docker Scout
-        if: github.event_name != 'pull_request'
-        uses: docker/scout-action@v1
-        with:
-          command: cves
-          image: ${{ env.DOCKER_IMAGE }}:${{ steps.meta.outputs.version }}
-          only-severities: critical,high
-          exit-code: false # Don't fail on vulnerabilities, just report
 
       - name: Update Docker Hub description
         if: github.event_name != 'pull_request' && ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/') }}
