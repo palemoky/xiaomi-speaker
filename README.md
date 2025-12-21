@@ -19,6 +19,7 @@ The Voice of Your Code. <br/>你的代码，掷地有声！
 - 🔊 **语音播报** - 通过小米音箱播报任何自定义消息
 - 🎙 **本地 TTS** - 使用 Piper TTS 生成高质量离线语音(支持中英文)
 - 🔄 **智能回退** - 中文自动使用音箱内置 TTS,无需下载模型
+- 🔑 **登录持久化** - 自动保存小米账号 token，避免频繁登录，提升稳定性
 - 🎯 **GitHub 集成** - 接收 GitHub webhook 事件(workflow_run, workflow_job, check_run)
 - 📲 **HTTP API** - 通过 RESTful API 发送自定义通知
 - 🔐 **安全认证** - 支持 API Key 和 GitHub Webhook 签名验证
