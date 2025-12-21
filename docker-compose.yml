@@ -9,7 +9,7 @@ services:
     volumes:
       - speaker_data:/app/data # Persist Xiaomi account token
       - speaker_data:/app/audio_cache
-      - speaker_data:/home/root/.local/share/piper-voices
+      - speaker_data:/root/.local/share/piper-voices
     logging:
       driver: "json-file"
       options:
