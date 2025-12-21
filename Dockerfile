@@ -3,7 +3,7 @@
 # ==========================================
 # Stage 1: Builder (构建依赖环境)
 # ==========================================
-FROM python:3.13-slim AS builder
+FROM python:3.13-slim-bookworm AS builder
 
 WORKDIR /app
 
@@ -12,8 +12,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
-    ca-certificates \
-    curl
+    ca-certificates
 
 # 2. 安装 uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
@@ -36,43 +35,37 @@ RUN find /app/.venv -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null ||
 # ==========================================
 # Stage 2: Runtime (运行时环境)
 # ==========================================
-FROM dhi.io/python:3.13
-
-# OCI 标准元数据
-LABEL org.opencontainers.image.title="Xiaomi Speaker" \
-      org.opencontainers.image.description="Smart voice notification system for Xiaomi speakers with GitHub Actions integration" \
-      org.opencontainers.image.vendor="Palemoky" \
-      org.opencontainers.image.source="https://github.com/palemoky/xiaomi-speaker" \
-      org.opencontainers.image.licenses="GPL-3.0"
+FROM python:3.13-slim-bookworm
 
 WORKDIR /app
 
-# 1. 从 Builder 复制虚拟环境
-COPY --from=builder --chown=nonroot:nonroot /app/.venv /app/.venv
+# 1. 安装运行时系统依赖
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    ca-certificates \
+    && apt-get autoremove -y \
+    && rm -rf /var/lib/apt/lists/*
 
-# 2. 从 Builder 复制 curl（用于健康检查）
-COPY --from=builder /usr/bin/curl /usr/bin/curl
-COPY --from=builder /usr/lib/*/libcurl.so.4* /usr/lib/
-COPY --from=builder /usr/lib/*/libnghttp2.so.14* /usr/lib/
-COPY --from=builder /usr/lib/*/libssl.so.3* /usr/lib/
-COPY --from=builder /usr/lib/*/libcrypto.so.3* /usr/lib/
-COPY --from=builder /lib/*/libz.so.1* /lib/
+# 2. 从 Builder 复制虚拟环境
+COPY --from=builder /app/.venv /app/.venv
 
 # 3. 设置环境变量
-ENV PATH="/app/.venv/bin:$PATH" \
-    PYTHONPATH=/app \
-    PYTHONUNBUFFERED=1
+ENV PATH="/app/.venv/bin:$PATH"
+ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
 
 # 4. 复制源代码
-COPY --chown=nonroot:nonroot src ./src
+COPY src ./src
 
-# 5. 创建数据目录（用于 token 持久化）
-RUN mkdir -p /app/data && chown nonroot:nonroot /app/data
+# 5. 创建数据目录
+RUN mkdir -p /app/data /app/audio_cache /root/.local/share/piper-voices
 
 # 6. 端口与健康检查
 EXPOSE 1810 2010
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-  CMD ["/usr/bin/curl", "-f", "http://127.0.0.1:2010/health"]
+  CMD curl -f http://127.0.0.1:2010/health || exit 1
 
 CMD ["python", "-m", "src.main"]
