@@ -66,7 +66,10 @@ ENV PATH="/app/.venv/bin:$PATH" \
 # 4. 复制源代码
 COPY --chown=nonroot:nonroot src ./src
 
-# 5. 端口与健康检查
+# 5. 创建数据目录（用于 token 持久化）
+RUN mkdir -p /app/data && chown nonroot:nonroot /app/data
+
+# 6. 端口与健康检查
 EXPOSE 1810 2010
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \

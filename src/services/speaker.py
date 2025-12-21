@@ -32,8 +32,18 @@ class SpeakerService:
             if not self.session:
                 self.session = ClientSession()
 
+            # Ensure token directory exists
+            from pathlib import Path
+
+            token_path = Path(settings.mi_token_path)
+            token_path.parent.mkdir(parents=True, exist_ok=True)
+            logger.info(f"Using token file: {token_path}")
+
             self.account = MiAccount(
-                session=self.session, username=settings.mi_user, password=settings.mi_pass
+                session=self.session,
+                username=settings.mi_user,
+                password=settings.mi_pass,
+                token_store=str(token_path),  # Enable token persistence
             )
             self.service = MiNAService(self.account)
 

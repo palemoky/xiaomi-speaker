@@ -9,7 +9,7 @@ services:
     security_opt: [no-new-privileges:true]
     cap_drop: [ALL]
     volumes:
-      - ./data/logs:/app/logs
+      - speaker_data:/app/data # Persist Xiaomi account token
       - speaker_data:/app/audio_cache
       - speaker_data:/home/nonroot/.local/share/piper-voices
     logging:
