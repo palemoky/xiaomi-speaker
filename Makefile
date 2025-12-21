@@ -30,6 +30,8 @@ release:  ## Create and push version tag (Usage: make release v1.0.0)
 		echo "$(YELLOW)Please commit or stash your changes before releasing$(NC)"; \
 		exit 1; \
 	fi; \
+	LATEST_TAG=$$(git describe --tags --abbrev=0 2>/dev/null || echo "none"); \
+	echo "$(BLUE)Current latest tag: $(GREEN)$$LATEST_TAG$(NC)"; \
 	echo "$(YELLOW)About to create and push tag $$VERSION$(NC)"; \
 	printf "$(YELLOW)Continue? [y/N] $(NC)"; \
 	read -r CONFIRM; \
