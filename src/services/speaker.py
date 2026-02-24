@@ -1,6 +1,10 @@
 """MiService integration for Xiaomi speaker control."""
 
+import json
 import logging
+import random
+import string
+from pathlib import Path
 
 from aiohttp import ClientSession
 from miservice import MiAccount, MiNAService
@@ -24,6 +28,35 @@ class SpeakerService:
         self.service: MiNAService | None = None
         self.session: ClientSession | None = None
 
+    @staticmethod
+    def _write_token_cache(token_path: Path) -> None:
+        """Write userId and passToken from env to the token cache file.
+
+        Merges with existing token data to preserve any service-specific tokens.
+        This enables passToken-based cookie auth, bypassing broken password login.
+        """
+        # Load existing token data if present
+        token: dict = {}
+        if token_path.is_file():
+            try:
+                token = json.loads(token_path.read_text())
+            except (json.JSONDecodeError, OSError):
+                logger.warning(f"Failed to read existing token file: {token_path}")
+
+        # Generate a random deviceId if not already present
+        if "deviceId" not in token:
+            token["deviceId"] = "".join(random.choices(string.ascii_letters + string.digits, k=16)).upper()
+
+        # Write userId and passToken from env vars
+        token["userId"] = settings.mi_user_id
+        token["passToken"] = settings.mi_pass_token
+
+        try:
+            token_path.write_text(json.dumps(token, indent=2))
+            logger.info("Token cache updated from MI_USER_ID and MI_PASS_TOKEN")
+        except OSError as e:
+            logger.error(f"Failed to write token cache file: {e}")
+
     async def connect(self) -> None:
         """Connect to Xiaomi account and initialize MiNA service."""
         try:
@@ -33,11 +66,14 @@ class SpeakerService:
                 self.session = ClientSession()
 
             # Ensure token directory exists
-            from pathlib import Path
-
             token_path = Path(settings.mi_token_path)
             token_path.parent.mkdir(parents=True, exist_ok=True)
             logger.info(f"Using token file: {token_path}")
+
+            # If MI_USER_ID and MI_PASS_TOKEN are configured, write them to the token cache
+            # file so MiAccount can use passToken-based cookie auth (bypasses broken password login)
+            if settings.mi_user_id and settings.mi_pass_token:
+                self._write_token_cache(token_path)
 
             self.account = MiAccount(
                 session=self.session,

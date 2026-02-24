@@ -20,10 +20,9 @@ class Settings(BaseSettings):
     mi_user: str = Field(default="", description="Xiaomi account username/email")
     mi_pass: str = Field(default="", description="Xiaomi account password")
     mi_did: str = Field(default="", description="Xiaomi device ID or name")
-    mi_token_path: str = Field(
-        default="/app/data/.mi.token",
-        description="Path to store Xiaomi account token for persistent login",
-    )
+    mi_user_id: str = Field(default="", description="Xiaomi user ID from browser cookies (used when password login fails)")
+    mi_pass_token: str = Field(default="", description="Xiaomi passToken from browser cookies (used when password login fails)")
+    mi_token_path: str = Field(default="/app/data/.mi.token", description="Path to store Xiaomi account token for persistent login")
 
     # Server Configuration
     server_host: str = Field(default="0.0.0.0", description="Webhook server host")
