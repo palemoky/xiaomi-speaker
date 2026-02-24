@@ -78,6 +78,8 @@ class TestSpeakerServiceConnect:
             mock_settings.mi_user = "test_user"
             mock_settings.mi_pass = "test_pass"
             mock_settings.mi_did = "uuid-1234-5678"
+            mock_settings.mi_user_id = "123456789"
+            mock_settings.mi_pass_token = "gkwvT72"
 
             service = SpeakerService()
             await service.connect()
@@ -98,6 +100,8 @@ class TestSpeakerServiceConnect:
             mock_settings.mi_user = "test_user"
             mock_settings.mi_pass = "test_pass"
             mock_settings.mi_did = "11223344"
+            mock_settings.mi_user_id = "123456789"
+            mock_settings.mi_pass_token = "gkwvT72"
 
             service = SpeakerService()
             await service.connect()
@@ -117,6 +121,8 @@ class TestSpeakerServiceConnect:
             mock_settings.mi_user = "test_user"
             mock_settings.mi_pass = "test_pass"
             mock_settings.mi_did = "北京小米音箱"
+            mock_settings.mi_user_id = "123456789"
+            mock_settings.mi_pass_token = "gkwvT72"
 
             service = SpeakerService()
             await service.connect()
@@ -136,6 +142,8 @@ class TestSpeakerServiceConnect:
             mock_settings.mi_user = "test_user"
             mock_settings.mi_pass = "test_pass"
             mock_settings.mi_did = "non_existent_device"
+            mock_settings.mi_user_id = "123456789"
+            mock_settings.mi_pass_token = "gkwvT72"
 
             service = SpeakerService()
 
@@ -157,6 +165,8 @@ class TestSpeakerServiceConnect:
             mock_settings.mi_user = "test_user"
             mock_settings.mi_pass = "test_pass"
             mock_settings.mi_did = "test_device"
+            mock_settings.mi_user_id = "123456789"
+            mock_settings.mi_pass_token = "gkwvT72"
 
             service = SpeakerService()
 
@@ -256,6 +266,8 @@ class TestSpeakerServicePlayAudioUrl:
             mock_settings.mi_user = "test_user"
             mock_settings.mi_pass = "test_pass"
             mock_settings.mi_did = "uuid-1234-5678"
+            mock_settings.mi_user_id = "123456789"
+            mock_settings.mi_pass_token = "gkwvT72"
 
             service = SpeakerService()
             result = await service.play_audio_url("http://example.com/audio.mp3")

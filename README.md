@@ -103,6 +103,10 @@ curl -X POST http://localhost:2010/webhook/custom \
 
 如果配置正确,音箱应该会播报"测试通知"。
 
+### 5. 登录问题排查
+
+如果遇到 `KeyError: 'userId' Login failed` 登录错误，请参照 https://github.com/Yonsm/MiService/issues/57#issuecomment-2869640864 获取 `userId` 和 `passToken` 并更新到 `.env` 文件中，配置后重启服务即可。`passToken` 长期有效，过期后重新获取即可。
+
 ## 🎯 使用场景
 
 ### 场景一:自定义脚本通知
@@ -159,7 +163,6 @@ if cpu_usage > 90:
 ### 方式一：使用 Docker Compose（推荐）
 
 1. **获取 Tunnel Token**
-
    - 登录 [Cloudflare Zero Trust Dashboard](https://one.dash.cloudflare.com/)
    - 进入 **Networks** > **Connectors** > **Create a tunnel** > **Select Cloudflared**
    - 命名你的 Tunnel（例如 `xiaomi-speaker`）并保存
@@ -168,7 +171,6 @@ if cpu_usage > 90:
    - 复制这个长字符串 Token
 
 2. **配置 Public Routes**
-
    - 在 Tunnel 配置页面的 "Published application routes" 标签
    - 添加一个 Hostname（例如 `speaker.yourdomain.com`）
    - **Service** 选择 `HTTP`，URL 填 `xiaomi-speaker:2010` (注意这里用容器名)
